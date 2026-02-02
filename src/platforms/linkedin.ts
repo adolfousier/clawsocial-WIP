@@ -14,10 +14,10 @@ import type {
 
 // LinkedIn selectors (updated for current UI)
 const SELECTORS = {
-  // Login
-  loginUsername: '#username',
-  loginPassword: '#password',
-  loginButton: 'button[type="submit"]',
+  // Login - multiple selectors for different login page variants
+  loginUsername: '#username, input[name="session_key"], input[autocomplete="username"]',
+  loginPassword: '#password, input[name="session_password"], input[autocomplete="current-password"]',
+  loginButton: 'button[type="submit"], button:has-text("Sign in")',
   
   // Logged in indicators
   navMe: 'button[aria-label*="me"]',
@@ -140,28 +140,100 @@ export class LinkedInHandler extends BasePlatformHandler {
         return true;
       }
 
-      // Wait for login form
-      if (!(await this.waitForElement(SELECTORS.loginUsername, 15000))) {
-        log.error('Login form not found');
+      const page = await this.getPage();
+      
+      // Take debug screenshot of login page
+      await page.screenshot({ path: './sessions/debug-linkedin-form.png' });
+      log.info('Login form screenshot saved');
+      
+      // Try multiple username field selectors
+      const usernameSelectors = ['#username', 'input[name="session_key"]', 'input[autocomplete="username"]'];
+      let usernameField = null;
+      for (const sel of usernameSelectors) {
+        if (await this.elementExists(sel)) {
+          usernameField = sel;
+          log.info(`Found username field: ${sel}`);
+          break;
+        }
+      }
+      
+      if (!usernameField) {
+        log.error('Login form not found - no username field');
         return false;
       }
 
       // Enter username
-      const page = await this.getPage();
-      await page.fill(SELECTORS.loginUsername, username);
+      await page.locator(usernameField).first().fill(username);
+      log.info('Username entered');
       await this.pause();
+
+      // Try multiple password field selectors
+      const passwordSelectors = ['#password', 'input[name="session_password"]', 'input[type="password"]'];
+      let passwordField = null;
+      for (const sel of passwordSelectors) {
+        if (await this.elementExists(sel)) {
+          passwordField = sel;
+          log.info(`Found password field: ${sel}`);
+          break;
+        }
+      }
+      
+      if (!passwordField) {
+        log.error('Password field not found');
+        return false;
+      }
 
       // Enter password
-      await page.fill(SELECTORS.loginPassword, password);
+      await page.locator(passwordField).first().fill(password);
+      log.info('Password entered');
       await this.pause();
 
+      // Screenshot before login
+      await page.screenshot({ path: './sessions/debug-linkedin-before-login.png' });
+
       // Click login
-      await this.clickHuman(SELECTORS.loginButton);
+      const loginSelectors = ['button[type="submit"]', 'button:has-text("Sign in")'];
+      for (const sel of loginSelectors) {
+        if (await this.elementExists(sel)) {
+          log.info(`Clicking login button: ${sel}`);
+          await page.locator(sel).first().click();
+          break;
+        }
+      }
       await this.delay();
 
-      // Wait for login
+      // Take screenshot after clicking login
+      await page.screenshot({ path: './sessions/debug-linkedin-login.png' });
+      log.info('Screenshot saved to ./sessions/debug-linkedin-login.png');
+
+      // Check for MFA/verification page
+      const mfaSelectors = [
+        'input[name="pin"]',
+        'input[id="input__email_verification_pin"]',
+        'h1:has-text("verification")',
+        'h1:has-text("Verify")',
+        'div:has-text("Approve from your")',
+        'div:has-text("verify it")',
+        'button:has-text("Verify")',
+      ];
+      
+      let mfaDetected = false;
+      for (const sel of mfaSelectors) {
+        if (await this.elementExists(sel)) {
+          mfaDetected = true;
+          break;
+        }
+      }
+      
+      if (mfaDetected) {
+        log.info('🔐 MFA/Verification detected - please approve in your LinkedIn app or enter code');
+        await page.screenshot({ path: './sessions/debug-linkedin-mfa.png' });
+        log.info('MFA screenshot saved to ./sessions/debug-linkedin-mfa.png');
+      }
+
+      // Wait for login (longer timeout for MFA - 2 minutes)
       const startTime = Date.now();
-      const timeout = 30000;
+      const timeout = 120000;
 
       while (Date.now() - startTime < timeout) {
         if (await this.isLoggedIn()) {
@@ -169,10 +241,17 @@ export class LinkedInHandler extends BasePlatformHandler {
           await this.browserManager.saveSession('linkedin');
           return true;
         }
+        
+        // Periodic status update
+        if ((Date.now() - startTime) % 15000 < 1000) {
+          log.info('Waiting for login/MFA approval...', { elapsed: Math.round((Date.now() - startTime) / 1000) });
+        }
+        
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
-      log.error('LinkedIn login timeout');
+      await page.screenshot({ path: './sessions/debug-linkedin-timeout.png' });
+      log.error('LinkedIn login timeout - check ./sessions/debug-linkedin-timeout.png');
       return false;
     } catch (error) {
       log.error('LinkedIn login failed', { error: String(error) });

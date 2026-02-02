@@ -66,7 +66,7 @@ session
     try {
       // Get credentials from options or environment
       const envPrefix = platform.toUpperCase();
-      const username = options.username || process.env[`${envPrefix}_USERNAME`];
+      const username = options.username || process.env[`${envPrefix}_USERNAME`] || process.env[`${envPrefix}_EMAIL`];
       const password = options.password || process.env[`${envPrefix}_PASSWORD`];
       
       const headless = options.headless === true || (username && password);
