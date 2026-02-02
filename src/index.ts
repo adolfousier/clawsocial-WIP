@@ -129,7 +129,7 @@ export class ClawSocial {
   }
 
   /**
-   * Login to a platform
+   * Login to a platform (interactive)
    */
   async login(platform: Platform): Promise<boolean> {
     switch (platform) {
@@ -139,6 +139,26 @@ export class ClawSocial {
         return this.twitter.login();
       case 'linkedin':
         return this.linkedin.login();
+      default:
+        throw new Error(`Unknown platform: ${platform}`);
+    }
+  }
+
+  /**
+   * Login to a platform with credentials (headless)
+   */
+  async loginWithCredentials(
+    platform: Platform,
+    username: string,
+    password: string
+  ): Promise<boolean> {
+    switch (platform) {
+      case 'instagram':
+        return this.instagram.loginWithCredentials(username, password);
+      case 'twitter':
+        return this.twitter.loginWithCredentials(username, password);
+      case 'linkedin':
+        return this.linkedin.loginWithCredentials(username, password);
       default:
         throw new Error(`Unknown platform: ${platform}`);
     }

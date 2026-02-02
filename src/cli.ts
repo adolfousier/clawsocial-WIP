@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import 'dotenv/config';
 import { Command } from 'commander';
 import { ClawSocial } from './index.js';
 import type { Platform } from './types/index.js';
@@ -58,23 +59,48 @@ const session = program.command('session').description('Manage login sessions');
 session
   .command('login <platform>')
   .description('Login to a platform (instagram, twitter, linkedin)')
-  .option('--no-headless', 'Show browser window for login')
+  .option('--headless', 'Run in headless mode (reads credentials from env)')
+  .option('-u, --username <username>', 'Username/email (or set PLATFORM_USERNAME env)')
+  .option('-p, --password <password>', 'Password (or set PLATFORM_PASSWORD env)')
   .action(async (platform: Platform, options) => {
     try {
+      // Get credentials from options or environment
+      const envPrefix = platform.toUpperCase();
+      const username = options.username || process.env[`${envPrefix}_USERNAME`];
+      const password = options.password || process.env[`${envPrefix}_PASSWORD`];
+      
+      const headless = options.headless === true || (username && password);
+      
       const claw = new ClawSocial({
-        browser: { headless: options.headless !== false ? false : true },
+        browser: { headless },
       });
 
       await claw.initialize();
-      console.log(`\nOpening ${platform} login...`);
-      console.log('Please enter your credentials in the browser window.\n');
-
-      const success = await claw.login(platform);
-
-      if (success) {
-        console.log(`✅ Successfully logged in to ${platform}`);
+      
+      if (headless && username && password) {
+        console.log(`\n🔐 Logging in to ${platform} (headless mode)...`);
+        const success = await claw.loginWithCredentials(platform, username, password);
+        
+        if (success) {
+          console.log(`✅ Successfully logged in to ${platform}`);
+        } else {
+          console.log(`❌ Login to ${platform} failed`);
+        }
+      } else if (headless) {
+        console.log(`\n⚠️  Headless login requires credentials.`);
+        console.log(`Set ${envPrefix}_USERNAME and ${envPrefix}_PASSWORD in .env`);
+        console.log(`Or pass -u USERNAME -p PASSWORD\n`);
       } else {
-        console.log(`❌ Login to ${platform} failed or timed out`);
+        console.log(`\nOpening ${platform} login...`);
+        console.log('Please enter your credentials in the browser window.\n');
+
+        const success = await claw.login(platform);
+
+        if (success) {
+          console.log(`✅ Successfully logged in to ${platform}`);
+        } else {
+          console.log(`❌ Login to ${platform} failed or timed out`);
+        }
       }
 
       await claw.shutdown();

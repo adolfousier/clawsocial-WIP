@@ -126,6 +126,61 @@ export class LinkedInHandler extends BasePlatformHandler {
   }
 
   /**
+   * Login with credentials (headless)
+   */
+  async loginWithCredentials(username: string, password: string): Promise<boolean> {
+    try {
+      log.info('Starting LinkedIn headless login...');
+      
+      await this.navigate(`${this.baseUrl}/login`);
+      await this.delay();
+
+      if (await this.isLoggedIn()) {
+        log.info('Already logged in to LinkedIn');
+        return true;
+      }
+
+      // Wait for login form
+      if (!(await this.waitForElement(SELECTORS.loginUsername, 15000))) {
+        log.error('Login form not found');
+        return false;
+      }
+
+      // Enter username
+      const page = await this.getPage();
+      await page.fill(SELECTORS.loginUsername, username);
+      await this.pause();
+
+      // Enter password
+      await page.fill(SELECTORS.loginPassword, password);
+      await this.pause();
+
+      // Click login
+      await this.clickHuman(SELECTORS.loginButton);
+      await this.delay();
+
+      // Wait for login
+      const startTime = Date.now();
+      const timeout = 30000;
+
+      while (Date.now() - startTime < timeout) {
+        if (await this.isLoggedIn()) {
+          log.info('LinkedIn login successful');
+          await this.browserManager.saveSession('linkedin');
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      log.error('LinkedIn login timeout');
+      return false;
+    } catch (error) {
+      log.error('LinkedIn login failed', { error: String(error) });
+      return false;
+    }
+  }
+
+  /**
    * Logout from LinkedIn
    */
   async logout(): Promise<void> {

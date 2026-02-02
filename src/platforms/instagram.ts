@@ -13,13 +13,17 @@ import type {
 
 // Instagram selectors (updated for current Instagram UI)
 const SELECTORS = {
+  // Cookie consent
+  cookieAccept: 'button:has-text("Allow all cookies"), button:has-text("Accept All"), button:has-text("Allow essential and optional cookies"), button._a9--._ap36._a9_0',
+  cookieDecline: 'button:has-text("Decline optional cookies"), button:has-text("Only allow essential cookies")',
+  
   // Login
-  loginUsername: 'input[name="username"]',
-  loginPassword: 'input[name="password"]',
-  loginButton: 'button[type="submit"]',
-  loginError: '#slfErrorAlert',
+  loginUsername: 'input[name="username"], input[aria-label*="username"], input[aria-label*="Phone"], input[autocomplete="username"]',
+  loginPassword: 'input[name="password"], input[type="password"], input[aria-label*="Password"]',
+  loginButton: 'button[type="submit"], button:has-text("Log in"), div[role="button"]:has-text("Log in")',
+  loginError: '#slfErrorAlert, p[data-testid="login-error-message"]',
   notNowButton: 'button:has-text("Not Now"), div[role="button"]:has-text("Not now")',
-  saveLoginButton: 'button:has-text("Save Info")',
+  saveLoginButton: 'button:has-text("Save Info"), button:has-text("Save info")',
   
   // Profile indicators
   profileIcon: 'svg[aria-label="Home"]',
@@ -134,6 +138,256 @@ export class InstagramHandler extends BasePlatformHandler {
       }
 
       log.error('Instagram login timeout');
+      return false;
+    } catch (error) {
+      log.error('Instagram login failed', { error: String(error) });
+      return false;
+    }
+  }
+
+  /**
+   * Handle cookie consent popup
+   */
+  private async handleCookieConsent(): Promise<void> {
+    try {
+      // Try to find and click cookie accept button
+      const page = await this.getPage();
+      
+      // Wait a bit for popup to appear
+      await this.pause();
+      
+      // Try different selectors for cookie consent
+      const cookieSelectors = [
+        'button:has-text("Allow all cookies")',
+        'button:has-text("Accept All")',
+        'button:has-text("Allow essential and optional cookies")',
+        'button:has-text("Accept")',
+        '[role="dialog"] button:first-of-type',
+        'button._a9--._ap36._a9_0',
+      ];
+      
+      for (const selector of cookieSelectors) {
+        try {
+          const button = page.locator(selector).first();
+          if (await button.isVisible({ timeout: 2000 })) {
+            await button.click();
+            log.info('Cookie consent accepted');
+            await this.pause();
+            return;
+          }
+        } catch {
+          // Try next selector
+        }
+      }
+      
+      log.debug('No cookie consent popup found');
+    } catch (error) {
+      log.debug('Cookie consent handling skipped', { error: String(error) });
+    }
+  }
+
+  /**
+   * Login with credentials (headless)
+   */
+  async loginWithCredentials(username: string, password: string): Promise<boolean> {
+    try {
+      log.info('Starting Instagram headless login...');
+      
+      await this.navigate(`${this.baseUrl}/accounts/login/`);
+      await this.delay();
+
+      // Handle cookie consent popup first
+      await this.handleCookieConsent();
+      
+      // Wait for page to stabilize
+      await this.delay();
+
+      // Take debug screenshot
+      const page = await this.getPage();
+      await page.screenshot({ path: './sessions/debug-login.png' });
+      log.info('Debug screenshot saved to ./sessions/debug-login.png');
+
+      // Check if already logged in
+      if (await this.isLoggedIn()) {
+        log.info('Already logged in to Instagram');
+        return true;
+      }
+
+      // Check if we're on the "Continue as [username]" screen (has profile pic, no username field)
+      const hasUsernameField = await this.elementExists('input[name="username"], input[type="text"]');
+      const hasContinueButton = await this.elementExists('button:has-text("Continue"), div[role="button"]:has-text("Continue")');
+      
+      if (hasContinueButton && !hasUsernameField) {
+        // This is the "Continue as saved account" screen
+        // Click "Use another profile" to get to standard login form (more reliable than Continue button)
+        log.info('Found "Continue as saved account" screen - clicking "Use another profile"');
+        
+        try {
+          const useAnotherBtn = page.locator('button:has-text("Use another profile"), div[role="button"]:has-text("Use another profile")').first();
+          await useAnotherBtn.click({ force: true });
+          log.info('Clicked "Use another profile" button');
+          await this.delay();
+        } catch (error) {
+          log.warn('Failed to click "Use another profile"', { error: String(error) });
+        }
+      }
+
+      // Standard username/password login flow
+      // Try multiple selectors for the username field
+      const usernameSelectors = [
+        'input[name="username"]',
+        'input[aria-label*="username"]', 
+        'input[aria-label*="Phone"]',
+        'input[aria-label*="email"]',
+        'input[autocomplete="username"]',
+        'input[type="text"]',
+      ];
+      
+      let usernameField = null;
+      for (const sel of usernameSelectors) {
+        if (await this.waitForElement(sel, 3000)) {
+          usernameField = sel;
+          log.info(`Found username field with selector: ${sel}`);
+          break;
+        }
+      }
+      
+      if (!usernameField) {
+        log.error('Login form not found - check ./sessions/debug-login.png');
+        await page.screenshot({ path: './sessions/debug-login-fail.png' });
+        return false;
+      }
+
+      // Enter username
+      log.info('Typing username...');
+      await page.locator(usernameField).first().fill(username);
+      await this.pause();
+      log.info('Username entered');
+
+      // Find and enter password
+      const passwordSelectors = ['input[name="password"]', 'input[type="password"]', 'input[aria-label*="Password"]'];
+      let passwordField = null;
+      for (const sel of passwordSelectors) {
+        if (await this.elementExists(sel)) {
+          passwordField = sel;
+          log.info(`Found password field with selector: ${sel}`);
+          break;
+        }
+      }
+      
+      if (!passwordField) {
+        log.error('Password field not found');
+        await page.screenshot({ path: './sessions/debug-password-fail.png' });
+        return false;
+      }
+      
+      log.info('Typing password...');
+      await page.locator(passwordField).first().fill(password);
+      await this.pause();
+      log.info('Password entered');
+      
+      // Take screenshot before clicking login
+      await page.screenshot({ path: './sessions/debug-before-login.png' });
+      log.info('Screenshot saved before clicking login');
+
+      // Click login button
+      const loginSelectors = ['button[type="submit"]', 'button:has-text("Log in")', 'div[role="button"]:has-text("Log in")'];
+      for (const sel of loginSelectors) {
+        if (await this.elementExists(sel)) {
+          log.info(`Clicking login button: ${sel}`);
+          await this.clickHuman(sel);
+          break;
+        }
+      }
+      await this.delay();
+      
+      // Take screenshot after clicking login
+      await page.screenshot({ path: './sessions/debug-after-login.png' });
+      log.info('Screenshot saved after clicking login');
+
+      // Wait for page to change (login processing)
+      await page.waitForTimeout(5000);
+      
+      // Capture current URL and page state for debugging
+      const currentUrl = page.url();
+      log.info('Current URL after login attempt', { url: currentUrl });
+      await page.screenshot({ path: './sessions/debug-post-login.png' });
+      log.info('Post-login screenshot saved');
+
+      // Check for security checkpoint or verification
+      const checkpointSelectors = [
+        'input[name="verificationCode"]',
+        'input[placeholder*="code"]',
+        'input[aria-label*="code"]',
+        'button:has-text("Send Security Code")',
+        'div:has-text("Enter the 6-digit code")',
+        'div:has-text("Suspicious Login Attempt")',
+        'div:has-text("verify")',
+      ];
+      
+      for (const sel of checkpointSelectors) {
+        if (await this.elementExists(sel)) {
+          log.warn('Security checkpoint detected - manual verification required', { selector: sel });
+          await page.screenshot({ path: './sessions/debug-checkpoint.png' });
+          log.info('Checkpoint screenshot saved to ./sessions/debug-checkpoint.png');
+          log.info('Please complete verification manually in browser, then retry with saved session');
+          return false;
+        }
+      }
+
+      // Wait for login to complete (check for home page or error)
+      const startTime = Date.now();
+      const timeout = 30000;
+
+      while (Date.now() - startTime < timeout) {
+        // Check for login error
+        if (await this.elementExists(SELECTORS.loginError)) {
+          log.error('Instagram login failed - invalid credentials');
+          await page.screenshot({ path: './sessions/debug-login-error.png' });
+          return false;
+        }
+
+        // Check for session cookie as primary indicator
+        const cookies = await page.context().cookies();
+        const hasSession = cookies.some(c => c.name === 'sessionid');
+        if (hasSession) {
+          log.info('Session cookie detected - login successful');
+          await this.browserManager.saveSession('instagram');
+          
+          // Handle popups
+          if (await this.elementExists(SELECTORS.saveLoginButton)) {
+            await this.clickHuman(SELECTORS.saveLoginButton);
+            await this.delay();
+          }
+          
+          if (await this.elementExists(SELECTORS.notNowButton)) {
+            await this.clickHuman(SELECTORS.notNowButton);
+            await this.delay();
+          }
+          
+          return true;
+        }
+
+        // Also check DOM for logged-in state
+        if (await this.isLoggedIn()) {
+          log.info('Instagram login successful (DOM check)');
+          await this.browserManager.saveSession('instagram');
+          return true;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        
+        // Periodic debug screenshot
+        if (Date.now() - startTime > 15000) {
+          await page.screenshot({ path: './sessions/debug-waiting.png' });
+          log.info('Still waiting for login...', { elapsed: Math.round((Date.now() - startTime) / 1000) });
+        }
+      }
+
+      // Final debug info
+      await page.screenshot({ path: './sessions/debug-timeout.png' });
+      log.error('Instagram login timeout - check ./sessions/debug-timeout.png');
+      log.info('Final URL', { url: page.url() });
       return false;
     } catch (error) {
       log.error('Instagram login failed', { error: String(error) });

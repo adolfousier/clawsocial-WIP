@@ -130,6 +130,78 @@ export class TwitterHandler extends BasePlatformHandler {
   }
 
   /**
+   * Login with credentials (headless)
+   */
+  async loginWithCredentials(username: string, password: string): Promise<boolean> {
+    try {
+      log.info('Starting Twitter headless login...');
+      
+      await this.navigate(`${this.baseUrl}/login`);
+      await this.delay();
+
+      if (await this.isLoggedIn()) {
+        log.info('Already logged in to Twitter');
+        return true;
+      }
+
+      // Wait for username input
+      if (!(await this.waitForElement(SELECTORS.loginUsername, 15000))) {
+        log.error('Login form not found');
+        return false;
+      }
+
+      // Enter username
+      await this.typeHuman(SELECTORS.loginUsername, username, { clear: true });
+      await this.pause();
+
+      // Click next
+      if (await this.elementExists(SELECTORS.nextButton)) {
+        await this.clickHuman(SELECTORS.nextButton);
+        await this.delay();
+      }
+
+      // Wait for password input
+      if (!(await this.waitForElement(SELECTORS.loginPassword, 10000))) {
+        log.error('Password field not found');
+        return false;
+      }
+
+      // Enter password
+      await this.typeHuman(SELECTORS.loginPassword, password, { clear: true });
+      await this.pause();
+
+      // Click login
+      if (await this.elementExists(SELECTORS.loginButton)) {
+        await this.clickHuman(SELECTORS.loginButton);
+      } else {
+        const page = await this.getPage();
+        await page.keyboard.press('Enter');
+      }
+      
+      await this.delay();
+
+      // Wait for login
+      const startTime = Date.now();
+      const timeout = 30000;
+
+      while (Date.now() - startTime < timeout) {
+        if (await this.isLoggedIn()) {
+          log.info('Twitter login successful');
+          await this.browserManager.saveSession('twitter');
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      log.error('Twitter login timeout');
+      return false;
+    } catch (error) {
+      log.error('Twitter login failed', { error: String(error) });
+      return false;
+    }
+  }
+
+  /**
    * Logout from Twitter
    */
   async logout(): Promise<void> {
