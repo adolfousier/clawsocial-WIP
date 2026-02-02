@@ -64,17 +64,32 @@ export class LinkedInHandler extends BasePlatformHandler {
   }
 
   /**
-   * Check if logged in to LinkedIn
+   * Check if logged in to LinkedIn (without navigating away)
    */
   async isLoggedIn(): Promise<boolean> {
     try {
-      await this.navigate(`${this.baseUrl}/feed/`);
-      await this.delay();
+      const page = await this.getPage();
       
+      // Check for li_at cookie (LinkedIn auth cookie)
+      const cookies = await page.context().cookies();
+      const hasAuthCookie = cookies.some(c => c.name === 'li_at');
+      if (hasAuthCookie) {
+        log.debug('LinkedIn auth cookie found');
+        return true;
+      }
+      
+      // Check current URL - if on feed or home, we're logged in
+      const url = page.url();
+      if (url.includes('/feed') || url.includes('/mynetwork') || url.includes('/messaging')) {
+        log.debug('LinkedIn logged-in URL detected');
+        return true;
+      }
+      
+      // Check for logged-in nav elements on current page
       const hasNav = await this.elementExists(SELECTORS.globalNav);
-      const hasFeed = await this.elementExists(SELECTORS.feedSort);
+      const hasMe = await this.elementExists(SELECTORS.navMe);
       
-      return hasNav || hasFeed;
+      return hasNav || hasMe;
     } catch (error) {
       log.error('Error checking LinkedIn login status', { error: String(error) });
       return false;
