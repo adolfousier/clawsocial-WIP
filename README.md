@@ -7,13 +7,27 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-1.48+-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
 
-**Production-ready social media automation with human-like behavior simulation**
+**Social media automation with human-like behavior simulation**
 
 [Features](#features) • [Installation](#installation) • [Usage](#usage) • [API](#api) • [Configuration](#configuration)
 
 
 
 </div>
+
+---
+
+## ⚠️ Important Notice
+
+> **This software is for educational and experimental purposes only.**
+> 
+> Read **[AUTOMATION_RULES.md](./AUTOMATION_RULES.md)** before using.
+> 
+> | Platform | Status |
+> |----------|--------|
+> | Twitter/X | 🟡 Use [`bird`](https://github.com/adolfousier/bird) CLI instead |
+> | Instagram | 🔴 Experimental - not production ready |
+> | LinkedIn | 🔴 Experimental - not production ready |
 
 ---
 
