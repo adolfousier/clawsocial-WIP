@@ -6,9 +6,9 @@
 
 # 🦀 ClawSocial
 
-**Production-ready social media automation with human-like behavior simulation**
+**Web-based social media automation tool with human-like behavior simulation built with Playwright**
 
-*Automate Instagram, Twitter/X, and LinkedIn interactions efficiently. Reddit comming soon!*
+*Post, like, comment, follow/connect, unfollow and DM on Instagram, Twitter/X, and LinkedIn. Reddit is comming soon!*
 
 [Features](#-features) • [Architecture](#-architecture) • [Workflow](#-workflow) • [Installation](#-installation) • [Usage](#-usage) • [API](#-api-reference) • [Configuration](#-configuration)
 
@@ -209,7 +209,8 @@ npm start
 
 ### ⚠️ Important Notice
 
-> **This software is for educational and experimental purposes only. EXPECT TO BREAK OR BE LIMITED IF NOT FOLLOWING AUTOMATION_RULES.md**
+> **This software is for educational and experimental purposes only.**
+> **Expect this tool to break without further notice. Follow AUTOMATION_RULES.md for best performance**
 > 
 > Read **[AUTOMATION_RULES.md](./AUTOMATION_RULES.md)** before using.
 > 
