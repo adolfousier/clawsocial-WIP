@@ -220,6 +220,9 @@ npm run cli -- ig like https://instagram.com/p/ABC123
 npm run cli -- ig follow username
 npm run cli -- ig comment https://instagram.com/p/ABC123 "Great post!"
 npm run cli -- ig dm username "Hello from ClawSocial!"
+npm run cli -- ig followers username -n 10  # Scrape followers from profile
+npm run cli -- ig posts username -n 3       # Get recent posts from profile
+npm run cli -- ig profile username          # Get profile data
 
 # Twitter actions
 npm run cli -- twitter like https://twitter.com/user/status/123

@@ -268,6 +268,50 @@ ig.command('profile <username>')
     }
   });
 
+ig.command('followers <username>')
+  .description('Scrape followers from an Instagram profile')
+  .option('-n, --limit <number>', 'Max followers to scrape', '10')
+  .action(async (username: string, options: { limit: string }) => {
+    try {
+      const claw = new ClawSocial({ browser: { headless: true } });
+      await claw.initialize();
+
+      const limit = parseInt(options.limit, 10);
+      const followers = await claw.instagram.scrapeFollowers(username, limit);
+      
+      console.log(`\n📋 Scraped ${followers.length} followers from @${username}:\n`);
+      followers.forEach((f, i) => console.log(`  ${i + 1}. @${f}`));
+      console.log(JSON.stringify({ username, followers, count: followers.length }, null, 2));
+
+      await claw.shutdown();
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+
+ig.command('posts <username>')
+  .description('Get recent posts from an Instagram profile')
+  .option('-n, --limit <number>', 'Max posts to get', '3')
+  .action(async (username: string, options: { limit: string }) => {
+    try {
+      const claw = new ClawSocial({ browser: { headless: true } });
+      await claw.initialize();
+
+      const limit = parseInt(options.limit, 10);
+      const posts = await claw.instagram.getRecentPosts(username, limit);
+      
+      console.log(`\n📷 Recent posts from @${username}:\n`);
+      posts.forEach((p, i) => console.log(`  ${i + 1}. ${p}`));
+      console.log(JSON.stringify({ username, posts, count: posts.length }, null, 2));
+
+      await claw.shutdown();
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+
 // ============================================================================
 // Twitter commands
 // ============================================================================

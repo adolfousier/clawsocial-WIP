@@ -57,6 +57,17 @@ const SELECTORS = {
   followingCount: 'a[href*="/following/"] span, li:has-text("following") span',
   postCount: 'li:has-text("posts") span',
   verifiedBadge: 'svg[aria-label="Verified"]',
+  
+  // Followers popup
+  followersLink: 'a[href*="/followers/"]',
+  followersDialog: 'div[role="dialog"]',
+  followersDialogList: 'div[role="dialog"] div[style*="overflow"]',
+  followerItem: 'div[role="dialog"] a[role="link"][href^="/"]',
+  followerUsername: 'span a[href^="/"], a[role="link"] span',
+  
+  // Posts grid
+  postsGrid: 'article a[href*="/p/"], main article a[href*="/p/"]',
+  postLink: 'a[href*="/p/"]',
 };
 
 export class InstagramHandler extends BasePlatformHandler {
@@ -719,6 +730,186 @@ export class InstagramHandler extends BasePlatformHandler {
     } catch (error) {
       log.error('Error getting Instagram profile', { error: String(error) });
       return { username };
+    }
+  }
+
+  /**
+   * Scrape followers from a profile's followers popup
+   * @param username - The profile to scrape followers from
+   * @param limit - Max number of followers to scrape (default 10)
+   */
+  async scrapeFollowers(username: string, limit: number = 10): Promise<string[]> {
+    const followers: string[] = [];
+    
+    try {
+      log.info('Scraping Instagram followers', { username, limit });
+      
+      // Navigate to profile
+      const profileUrl = `${this.baseUrl}/${username}/`;
+      await this.navigate(profileUrl);
+      await this.think();
+      
+      // Click on followers link to open popup
+      const followersLinkSelector = SELECTORS.followersLink;
+      if (!(await this.waitForElement(followersLinkSelector, 10000))) {
+        log.error('Followers link not found');
+        return followers;
+      }
+      
+      await this.clickHuman(followersLinkSelector);
+      await this.delay();
+      
+      // Wait for dialog to open
+      if (!(await this.waitForElement(SELECTORS.followersDialog, 10000))) {
+        log.error('Followers dialog not found');
+        return followers;
+      }
+      
+      const page = await this.getPage();
+      
+      // Scroll and collect followers
+      let scrollAttempts = 0;
+      const maxScrolls = Math.ceil(limit / 5) + 3; // Estimate ~5 users per scroll view
+      
+      while (followers.length < limit && scrollAttempts < maxScrolls) {
+        // Extract usernames from current view
+        const userLinks = await page.$$('div[role="dialog"] a[role="link"][href^="/"]');
+        
+        for (const link of userLinks) {
+          if (followers.length >= limit) break;
+          
+          try {
+            const href = await link.getAttribute('href');
+            if (href && href.startsWith('/') && !href.includes('/p/') && !href.includes('/explore/')) {
+              const extractedUsername = href.replace(/\//g, '').split('?')[0];
+              if (extractedUsername && extractedUsername !== username && !followers.includes(extractedUsername)) {
+                followers.push(extractedUsername);
+                log.debug('Found follower', { username: extractedUsername });
+              }
+            }
+          } catch {
+            // Skip problematic elements
+          }
+        }
+        
+        // Scroll down in the dialog
+        const dialog = await page.$('div[role="dialog"] div[style*="overflow"]');
+        if (dialog) {
+          await dialog.evaluate((el) => {
+            el.scrollTop += 300;
+          });
+          await this.pause(); // Wait for content to load
+        } else {
+          // Try scrolling the dialog itself
+          const dialogEl = await page.$('div[role="dialog"]');
+          if (dialogEl) {
+            await dialogEl.evaluate((el) => {
+              const scrollable = el.querySelector('div[style*="overflow"]') || el;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (scrollable as any).scrollTop += 300;
+            });
+            await this.pause();
+          }
+        }
+        
+        scrollAttempts++;
+        await this.delay();
+      }
+      
+      // Close the dialog by pressing Escape
+      await page.keyboard.press('Escape');
+      await this.delay();
+      
+      log.info('Scraped Instagram followers', { count: followers.length, followers });
+      return followers;
+    } catch (error) {
+      log.error('Error scraping Instagram followers', { error: String(error) });
+      return followers;
+    }
+  }
+
+  /**
+   * Get recent posts from a user's profile
+   * @param username - The profile to get posts from
+   * @param limit - Max number of posts to get (default 3)
+   */
+  async getRecentPosts(username: string, limit: number = 3): Promise<string[]> {
+    const posts: string[] = [];
+    
+    try {
+      log.info('Getting recent posts', { username, limit });
+      
+      // Navigate to profile
+      const profileUrl = `${this.baseUrl}/${username}/`;
+      await this.navigate(profileUrl);
+      await this.think();
+      
+      const page = await this.getPage();
+      
+      // Wait for posts to load - try multiple selectors
+      const postSelectors = [
+        'a[href*="/p/"]',
+        'article a[href*="/p/"]',
+        'main article a',
+        'div[style*="flex"] a[href*="/p/"]',
+      ];
+      
+      // Wait up to 10 seconds for any post to appear
+      for (const selector of postSelectors) {
+        try {
+          await page.waitForSelector(selector, { timeout: 3000 });
+          log.debug('Found posts with selector', { selector });
+          break;
+        } catch {
+          // Try next selector
+        }
+      }
+      
+      // Additional wait for content to fully render
+      await this.delay();
+      
+      // Find post links with multiple selector strategies (posts and reels)
+      let postLinks = await page.$$('a[href*="/p/"], a[href*="/reel/"]');
+      
+      if (postLinks.length === 0) {
+        // Try finding posts in article elements
+        postLinks = await page.$$('article a[href*="/p/"], article a[href*="/reel/"]');
+      }
+      
+      if (postLinks.length === 0) {
+        // Try finding any links that might be posts
+        const allLinks = await page.$$('a[href^="/"]');
+        for (const link of allLinks) {
+          const href = await link.getAttribute('href');
+          if (href && (href.includes('/p/') || href.includes('/reel/'))) {
+            postLinks.push(link);
+          }
+        }
+      }
+      
+      log.debug('Found post links', { count: postLinks.length });
+      
+      for (const link of postLinks) {
+        if (posts.length >= limit) break;
+        
+        try {
+          const href = await link.getAttribute('href');
+          if (href && (href.includes('/p/') || href.includes('/reel/'))) {
+            const fullUrl = href.startsWith('http') ? href : `${this.baseUrl}${href}`;
+            if (!posts.includes(fullUrl)) {
+              posts.push(fullUrl);
+            }
+          }
+        } catch {
+          // Skip problematic elements
+        }
+      }
+      
+      log.info('Got recent posts', { count: posts.length, posts });
+      return posts;
+    } catch (error) {
+      log.error('Error getting recent posts', { error: String(error) });
+      return posts;
     }
   }
 

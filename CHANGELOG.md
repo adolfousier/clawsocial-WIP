@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.32] - 2026-02-04
+
+### Added
+- **Instagram follower scraping**: `ig followers <username>` - scrapes followers from a profile's popup
+- **Instagram posts command**: `ig posts <username>` - gets recent posts from a profile
+- **Instagram engagement script**: `scripts/ig-engage.ts` - automated engagement with followers
+- **Fallback to follow**: If no posts found, follows the user instead of skipping
+- **Instagram state tracking**: `db/instagram_state.json` for tracking engaged followers
+
+### Changed
+- Instagram selectors updated for followers popup and posts grid
+- Added support for both posts (`/p/`) and reels (`/reel/`) in post detection
+
 ## [0.0.31] - 2026-02-04
 
 ### Added
