@@ -571,13 +571,17 @@ clawsocial notify send "Testing" --channel telegram
 
 ## ⚖️ Disclaimer
 
-This software is provided for **educational and research purposes**. Users are responsible for:
+This is an **open-source experimental tool** for educational and research purposes.
 
-1. ✅ Complying with the Terms of Service of each platform
-2. ✅ Respecting rate limits and usage policies
-3. ❌ **Not** using this software for spam, harassment, or illegal activities
+**By using this software, you acknowledge:**
 
-The authors are not responsible for any misuse or violations of platform policies.
+- Automating interactions may violate platform Terms of Service
+- You accept full responsibility for any account restrictions or bans
+- You will not use this for spam, harassment, commercial services, or illegal activities
+
+This project is similar to other browser automation tools (Playwright, Puppeteer, Selenium) used for testing and research. It is not a commercial service.
+
+**The authors are not responsible for any misuse or consequences of use.**
 
 ---
 
