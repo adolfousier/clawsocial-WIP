@@ -79,10 +79,10 @@ clawsocial instagram follow <username>
 ```bash
 # Scrape followers and engage
 cd /home/sonofanton/projects/clawsocial
-npx tsx scripts/ig-engage.ts --max=1
+npx tsx src/scripts/ig-engage.ts --max=1
 
 # Skip scrape, use existing state
-npx tsx scripts/ig-engage.ts --skip-scrape --max=1
+npx tsx src/scripts/ig-engage.ts --skip-scrape --max=1
 ```
 
 ---

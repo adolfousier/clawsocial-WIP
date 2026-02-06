@@ -265,7 +265,10 @@ export class TwitterHandler extends BasePlatformHandler {
         const alreadyLiked = await page.locator(sel).first().isVisible().catch(() => false);
         if (alreadyLiked) {
           log.info('Tweet already liked');
-          return this.createResult('like', payload.url, startTime, status);
+          return this.createResult('like', payload.url, startTime, status, {
+            postUrl: payload.url,
+            actions: ['❤️ Already Liked'],
+          });
         }
       }
 
@@ -307,7 +310,10 @@ export class TwitterHandler extends BasePlatformHandler {
       if (likeSuccess) {
         await this.recordAction('like');
         log.info('Successfully liked tweet');
-        return this.createResult('like', payload.url, startTime, status);
+        return this.createResult('like', payload.url, startTime, status, {
+          postUrl: payload.url,
+          actions: ['❤️ Liked'],
+        });
       }
 
       await page.screenshot({ path: './sessions/debug-x-like-verify-failed.png' });
@@ -365,7 +371,11 @@ export class TwitterHandler extends BasePlatformHandler {
       await this.recordAction('comment');
       
       log.info('Successfully replied to tweet');
-      return this.createResult('comment', payload.url, startTime, status);
+      return this.createResult('comment', payload.url, startTime, status, {
+        postUrl: payload.url,
+        commentText: payload.text,
+        actions: ['💬 Replied'],
+      });
     } catch (error) {
       log.error('Error replying to tweet', { error: String(error) });
       return this.createErrorResult('comment', payload.url, String(error), startTime, status);
@@ -414,7 +424,10 @@ export class TwitterHandler extends BasePlatformHandler {
         const isFollowing = await page.locator(sel).first().isVisible().catch(() => false);
         if (isFollowing) {
           log.info('Already following user');
-          return this.createResult('follow', payload.username, startTime, status);
+          return this.createResult('follow', payload.username, startTime, status, {
+            profileUrl: `https://x.com/${payload.username}`,
+            actions: ['👥 Already Following'],
+          });
         }
       }
 
@@ -458,7 +471,10 @@ export class TwitterHandler extends BasePlatformHandler {
       if (followSuccess) {
         await this.recordAction('follow');
         log.info('Successfully followed Twitter user');
-        return this.createResult('follow', payload.username, startTime, status);
+        return this.createResult('follow', payload.username, startTime, status, {
+          profileUrl: `https://x.com/${payload.username}`,
+          actions: ['👥 Followed'],
+        });
       }
 
       await page.screenshot({ path: './sessions/debug-x-follow-verify-failed.png' });
@@ -504,7 +520,10 @@ export class TwitterHandler extends BasePlatformHandler {
       if (await this.elementExists(SELECTORS.followButton)) {
         await this.recordAction('follow');
         log.info('Successfully unfollowed Twitter user');
-        return this.createResult('unfollow', payload.username, startTime, status);
+        return this.createResult('unfollow', payload.username, startTime, status, {
+          profileUrl: `https://x.com/${payload.username}`,
+          actions: ['👋 Unfollowed'],
+        });
       }
 
       return this.createErrorResult('unfollow', payload.username, 'Unfollow action failed', startTime, status);
@@ -572,7 +591,11 @@ export class TwitterHandler extends BasePlatformHandler {
       await this.recordAction('dm');
       
       log.info('Successfully sent Twitter DM');
-      return this.createResult('dm', payload.username, startTime, status);
+      return this.createResult('dm', payload.username, startTime, status, {
+        profileUrl: `https://x.com/${payload.username}`,
+        messagePreview: payload.message,
+        actions: ['✉️ DM Sent'],
+      });
     } catch (error) {
       log.error('Error sending Twitter DM', { error: String(error) });
       return this.createErrorResult('dm', payload.username, String(error), startTime, status);
@@ -617,7 +640,10 @@ export class TwitterHandler extends BasePlatformHandler {
       await this.recordAction('post');
       
       log.info('Successfully posted tweet');
-      return this.createResult('post', payload.text.substring(0, 50), startTime, status);
+      return this.createResult('post', payload.text.substring(0, 50), startTime, status, {
+        commentText: payload.text,
+        actions: ['📝 Posted'],
+      });
     } catch (error) {
       log.error('Error posting tweet', { error: String(error) });
       return this.createErrorResult('post', payload.text, String(error), startTime, status);
@@ -644,7 +670,10 @@ export class TwitterHandler extends BasePlatformHandler {
       // Check if already retweeted
       if (await this.elementExists(SELECTORS.unretweet)) {
         log.info('Already retweeted');
-        return this.createResult('retweet', url, startTime, status);
+        return this.createResult('retweet', url, startTime, status, {
+          postUrl: url,
+          actions: ['🔁 Already Retweeted'],
+        });
       }
 
       if (!(await this.elementExists(SELECTORS.retweetButton))) {
@@ -663,7 +692,10 @@ export class TwitterHandler extends BasePlatformHandler {
       await this.recordAction('like');
       
       log.info('Successfully retweeted');
-      return this.createResult('retweet', url, startTime, status);
+      return this.createResult('retweet', url, startTime, status, {
+        postUrl: url,
+        actions: ['🔁 Retweeted'],
+      });
     } catch (error) {
       log.error('Error retweeting', { error: String(error) });
       return this.createErrorResult('retweet', url, String(error), startTime, status);

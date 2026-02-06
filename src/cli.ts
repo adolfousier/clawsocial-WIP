@@ -3,7 +3,93 @@
 import 'dotenv/config';
 import { Command } from 'commander';
 import { ClawSocial } from './index.js';
-import type { Platform } from './types/index.js';
+import type { Platform, ActionType, NotificationPayload } from './types/index.js';
+
+// Default retry configuration
+const DEFAULT_RETRIES = 3;
+const RETRY_DELAY_MS = 5000; // 5 seconds between retries
+
+/**
+ * Parse --context JSON flag and merge with action result
+ */
+function parseContext(contextStr?: string): Record<string, unknown> | undefined {
+  if (!contextStr) return undefined;
+  try {
+    return JSON.parse(contextStr);
+  } catch {
+    console.error('Invalid --context JSON:', contextStr);
+    return undefined;
+  }
+}
+
+/**
+ * Retry wrapper for actions
+ */
+async function withRetry<T>(
+  action: () => Promise<T>,
+  options: {
+    retries: number;
+    actionName: string;
+    target: string;
+  }
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 1; attempt <= options.retries; attempt++) {
+    try {
+      return await action();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      if (attempt < options.retries) {
+        console.log(`⚠️ Attempt ${attempt}/${options.retries} failed for ${options.actionName} (${options.target})`);
+        console.log(`   Error: ${lastError.message}`);
+        console.log(`   Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
+/**
+ * Parse retries option, default to DEFAULT_RETRIES
+ */
+function parseRetries(retriesStr?: string): number {
+  if (!retriesStr) return DEFAULT_RETRIES;
+  const n = parseInt(retriesStr, 10);
+  return isNaN(n) ? DEFAULT_RETRIES : Math.max(1, Math.min(n, 10)); // Clamp 1-10
+}
+
+/**
+ * Send notification with merged context (used when --context is provided)
+ */
+async function sendNotificationWithContext(
+  claw: ClawSocial,
+  platform: Platform,
+  action: ActionType,
+  success: boolean,
+  target: string,
+  context?: Record<string, unknown>,
+  error?: string
+): Promise<void> {
+  const notifier = claw.notifier;
+  if (!notifier.isEnabled()) return;
+  
+  const payload: NotificationPayload = {
+    event: success ? 'action:complete' : 'action:error',
+    platform,
+    action,
+    success,
+    target,
+    error,
+    details: context,
+    timestamp: Date.now(),
+  };
+  
+  await notifier.notify(payload);
+}
 
 const program = new Command();
 
@@ -165,66 +251,144 @@ const ig = program.command('ig').alias('instagram').description('Instagram actio
 
 ig.command('like <url>')
   .description('Like an Instagram post')
-  .action(async (url: string) => {
+  .option('-c, --context <json>', 'JSON context for notification')
+  .option('-r, --retries <number>', 'Number of retry attempts on failure', String(DEFAULT_RETRIES))
+  .action(async (url: string, options: { context?: string; retries?: string }) => {
+    const retries = parseRetries(options.retries);
+    const context = parseContext(options.context);
+    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    
+    const claw = new ClawSocial({ browser: { headless: true } });
+    
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
       await claw.initialize();
 
-      const result = await claw.instagram.like({ url });
+      await withRetry(
+        async () => {
+          const res = await claw.instagram.like({ url });
+          if (!res.success) throw new Error(res.error || 'Like failed');
+          return res;
+        },
+        { retries, actionName: 'IG like', target: url }
+      );
 
-      if (result.success) {
-        console.log(`✅ Liked post: ${url}`);
-      } else {
-        console.log(`❌ Failed to like post: ${result.error}`);
+      console.log(`✅ Liked post: ${url}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'instagram', 'like', true, url,
+          { postUrl: url, ...context }
+        );
       }
 
       await claw.shutdown();
     } catch (error) {
-      console.error('Error:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.log(`❌ Failed to like after ${retries} attempts: ${errorMsg}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'instagram', 'like', false, url, context, errorMsg
+        );
+      }
+      
+      await claw.shutdown();
       process.exit(1);
     }
   });
 
 ig.command('follow <username>')
   .description('Follow an Instagram user')
-  .action(async (username: string) => {
+  .option('-c, --context <json>', 'JSON context for notification')
+  .option('-r, --retries <number>', 'Number of retry attempts on failure', String(DEFAULT_RETRIES))
+  .action(async (username: string, options: { context?: string; retries?: string }) => {
+    const retries = parseRetries(options.retries);
+    const context = parseContext(options.context);
+    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    
+    const claw = new ClawSocial({ browser: { headless: true } });
+    
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
       await claw.initialize();
 
-      const result = await claw.instagram.follow({ username });
+      await withRetry(
+        async () => {
+          const res = await claw.instagram.follow({ username });
+          if (!res.success) throw new Error(res.error || 'Follow failed');
+          return res;
+        },
+        { retries, actionName: 'IG follow', target: `@${username}` }
+      );
 
-      if (result.success) {
-        console.log(`✅ Followed: @${username}`);
-      } else {
-        console.log(`❌ Failed to follow: ${result.error}`);
+      console.log(`✅ Followed: @${username}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'instagram', 'follow', true, username,
+          { profileUrl: `https://instagram.com/${username}`, ...context }
+        );
       }
 
       await claw.shutdown();
     } catch (error) {
-      console.error('Error:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.log(`❌ Failed to follow @${username} after ${retries} attempts: ${errorMsg}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'instagram', 'follow', false, username, context, errorMsg
+        );
+      }
+      
+      await claw.shutdown();
       process.exit(1);
     }
   });
 
 ig.command('comment <url> <text>')
   .description('Comment on an Instagram post')
-  .action(async (url: string, text: string) => {
+  .option('-c, --context <json>', 'JSON context for notification')
+  .option('-r, --retries <number>', 'Number of retry attempts on failure', String(DEFAULT_RETRIES))
+  .action(async (url: string, text: string, options: { context?: string; retries?: string }) => {
+    const retries = parseRetries(options.retries);
+    const context = parseContext(options.context);
+    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    
+    const claw = new ClawSocial({ browser: { headless: true } });
+    
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
       await claw.initialize();
 
-      const result = await claw.instagram.comment({ url, text });
+      await withRetry(
+        async () => {
+          const res = await claw.instagram.comment({ url, text });
+          if (!res.success) throw new Error(res.error || 'Comment failed');
+          return res;
+        },
+        { retries, actionName: 'IG comment', target: url }
+      );
 
-      if (result.success) {
-        console.log(`✅ Commented on: ${url}`);
-      } else {
-        console.log(`❌ Failed to comment: ${result.error}`);
+      console.log(`✅ Commented on: ${url}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'instagram', 'comment', true, url,
+          { postUrl: url, commentText: text, ...context }
+        );
       }
 
       await claw.shutdown();
     } catch (error) {
-      console.error('Error:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.log(`❌ Failed to comment after ${retries} attempts: ${errorMsg}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'instagram', 'comment', false, url, context, errorMsg
+        );
+      }
+
+      await claw.shutdown();
       process.exit(1);
     }
   });
@@ -321,22 +485,48 @@ const twitter = program.command('twitter').alias('x').description('Twitter/X act
 twitter
   .command('like <url>')
   .description('Like a tweet')
-  .action(async (url: string) => {
+  .option('-c, --context <json>', 'JSON context for notification (language, behaviors, etc.)')
+  .option('-r, --retries <number>', 'Number of retry attempts on failure', String(DEFAULT_RETRIES))
+  .action(async (url: string, options: { context?: string; retries?: string }) => {
+    const retries = parseRetries(options.retries);
+    const context = parseContext(options.context);
+    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    
+    const claw = new ClawSocial({ browser: { headless: true } });
+    
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
       await claw.initialize();
 
-      const result = await claw.twitter.like({ url });
+      await withRetry(
+        async () => {
+          const res = await claw.twitter.like({ url });
+          if (!res.success) throw new Error(res.error || 'Like failed');
+          return res;
+        },
+        { retries, actionName: 'X like', target: url }
+      );
 
-      if (result.success) {
-        console.log(`✅ Liked tweet: ${url}`);
-      } else {
-        console.log(`❌ Failed to like: ${result.error}`);
+      console.log(`✅ Liked tweet: ${url}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'twitter', 'like', true, url,
+          { postUrl: url, ...context }
+        );
       }
 
       await claw.shutdown();
     } catch (error) {
-      console.error('Error:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.log(`❌ Failed to like after ${retries} attempts: ${errorMsg}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'twitter', 'like', false, url, context, errorMsg
+        );
+      }
+      
+      await claw.shutdown();
       process.exit(1);
     }
   });
@@ -367,33 +557,58 @@ twitter
 twitter
   .command('follow <username>')
   .description('Follow a Twitter user')
-  .action(async (usernameOrUrl: string) => {
-    try {
-      // Extract username from URL if needed (handles https://x.com/username or https://twitter.com/username)
-      let username = usernameOrUrl;
-      if (usernameOrUrl.includes('x.com/') || usernameOrUrl.includes('twitter.com/')) {
-        const match = usernameOrUrl.match(/(?:x\.com|twitter\.com)\/(@?[\w]+)/);
-        if (match) {
-          username = match[1].replace('@', '');
-        }
+  .option('-c, --context <json>', 'JSON context for notification')
+  .option('-r, --retries <number>', 'Number of retry attempts on failure', String(DEFAULT_RETRIES))
+  .action(async (usernameOrUrl: string, options: { context?: string; retries?: string }) => {
+    const retries = parseRetries(options.retries);
+    const context = parseContext(options.context);
+    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    
+    // Extract username from URL if needed
+    let username = usernameOrUrl;
+    if (usernameOrUrl.includes('x.com/') || usernameOrUrl.includes('twitter.com/')) {
+      const match = usernameOrUrl.match(/(?:x\.com|twitter\.com)\/(@?[\w]+)/);
+      if (match) {
+        username = match[1].replace('@', '');
       }
-      // Remove @ prefix if present
-      username = username.replace(/^@/, '');
-      
-      const claw = new ClawSocial({ browser: { headless: true } });
+    }
+    username = username.replace(/^@/, '');
+    
+    const claw = new ClawSocial({ browser: { headless: true } });
+    
+    try {
       await claw.initialize();
 
-      const result = await claw.twitter.follow({ username });
+      await withRetry(
+        async () => {
+          const res = await claw.twitter.follow({ username });
+          if (!res.success) throw new Error(res.error || 'Follow failed');
+          return res;
+        },
+        { retries, actionName: 'X follow', target: `@${username}` }
+      );
 
-      if (result.success) {
-        console.log(`✅ Followed: @${username}`);
-      } else {
-        console.log(`❌ Failed to follow: ${result.error}`);
+      console.log(`✅ Followed: @${username}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'twitter', 'follow', true, username,
+          { profileUrl: `https://x.com/${username}`, ...context }
+        );
       }
 
       await claw.shutdown();
     } catch (error) {
-      console.error('Error:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.log(`❌ Failed to follow @${username} after ${retries} attempts: ${errorMsg}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'twitter', 'follow', false, username, context, errorMsg
+        );
+      }
+      
+      await claw.shutdown();
       process.exit(1);
     }
   });
@@ -401,8 +616,12 @@ twitter
 twitter
   .command('reply <url> <text>')
   .description('Reply to a tweet')
-  .action(async (url: string, text: string) => {
+  .option('-c, --context <json>', 'JSON context for notification')
+  .action(async (url: string, text: string, options: { context?: string }) => {
     try {
+      const context = parseContext(options.context);
+      if (context) process.env.CLAWSOCIAL_SILENT = '1';
+      
       const claw = new ClawSocial({ browser: { headless: true } });
       await claw.initialize();
 
@@ -412,6 +631,14 @@ twitter
         console.log(`✅ Replied to tweet`);
       } else {
         console.log(`❌ Failed to reply: ${result.error}`);
+      }
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'twitter', 'comment', result.success, url,
+          { postUrl: url, commentText: text, actions: ['💬 Replied'], ...context },
+          result.error
+        );
       }
 
       await claw.shutdown();
@@ -433,25 +660,51 @@ linkedin
   .command('connect <url>')
   .description('Send a connection request')
   .option('-n, --note <note>', 'Add a note to the connection request')
-  .action(async (url: string, options) => {
+  .option('-c, --context <json>', 'JSON context for notification')
+  .option('-r, --retries <number>', 'Number of retry attempts on failure', String(DEFAULT_RETRIES))
+  .action(async (url: string, options: { note?: string; context?: string; retries?: string }) => {
+    const retries = parseRetries(options.retries);
+    const context = parseContext(options.context);
+    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    
+    const claw = new ClawSocial({ browser: { headless: true } });
+    
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
       await claw.initialize();
 
-      const result = await claw.linkedin.connect({
-        profileUrl: url,
-        note: options.note,
-      });
+      await withRetry(
+        async () => {
+          const res = await claw.linkedin.connect({
+            profileUrl: url,
+            note: options.note,
+          });
+          if (!res.success) throw new Error(res.error || 'Connect failed');
+          return res;
+        },
+        { retries, actionName: 'LinkedIn connect', target: url }
+      );
 
-      if (result.success) {
-        console.log(`✅ Sent connection request to: ${url}`);
-      } else {
-        console.log(`❌ Failed to connect: ${result.error}`);
+      console.log(`✅ Sent connection request to: ${url}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'linkedin', 'connect', true, url,
+          { profileUrl: url, note: options.note, ...context }
+        );
       }
 
       await claw.shutdown();
     } catch (error) {
-      console.error('Error:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.log(`❌ Failed to connect after ${retries} attempts: ${errorMsg}`);
+      
+      if (context) {
+        await sendNotificationWithContext(
+          claw, 'linkedin', 'connect', false, url, context, errorMsg
+        );
+      }
+      
+      await claw.shutdown();
       process.exit(1);
     }
   });
@@ -581,7 +834,7 @@ linkedin
   .option('--skip-search', 'Skip the search step, use existing articles')
   .action(async (options: { query: string; dryRun?: boolean; skipSearch?: boolean }) => {
     try {
-      const args = ['scripts/engage.ts', `--query=${options.query}`];
+      const args = ['src/scripts/engage.ts', `--query=${options.query}`];
       if (options.dryRun) args.push('--dry-run');
       if (options.skipSearch) args.push('--skip-search');
       
@@ -702,6 +955,342 @@ notify
       console.error('Error:', error);
       process.exit(1);
     }
+  });
+
+// ============================================================================
+// Formatted notification command (for cron jobs)
+// ============================================================================
+
+notify
+  .command('report <platform> <action> <target>')
+  .description('Send a formatted notification report (for cron jobs)')
+  .option('--context <json>', 'JSON context with all fields')
+  .option('--success', 'Mark as success (default)', true)
+  .option('--error <message>', 'Mark as error with message')
+  .action(async (platform: string, action: string, target: string, options: { context?: string; success?: boolean; error?: string }) => {
+    try {
+      const claw = new ClawSocial({ browser: { headless: true } });
+      const notifier = claw.notifier;
+      
+      if (!notifier.isEnabled()) {
+        console.log('❌ Notifications disabled. Set NOTIFY_ENABLED=true');
+        process.exit(1);
+      }
+      
+      let details: Record<string, unknown> = {};
+      if (options.context) {
+        try {
+          details = JSON.parse(options.context);
+        } catch {
+          console.error('❌ Invalid JSON in --context');
+          process.exit(1);
+        }
+      }
+      
+      const success = !options.error;
+      
+      await notifier.notify({
+        event: success ? 'action:complete' : 'action:error',
+        platform: platform as any,
+        action: action as any,
+        success,
+        target,
+        error: options.error,
+        details,
+        timestamp: Date.now(),
+      });
+      
+      console.log(`✅ ${platform.toUpperCase()} ${action.toUpperCase()} report sent`);
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+
+// ============================================================================
+// Test notification commands (for testing templates)
+// ============================================================================
+
+notify
+  .command('test-x-like')
+  .description('Send a test X LIKE notification')
+  .action(async () => {
+    const claw = new ClawSocial({ browser: { headless: true } });
+    const notifier = claw.notifier;
+    
+    if (!notifier.isEnabled()) {
+      console.log('❌ Notifications disabled. Set NOTIFY_ENABLED=true');
+      process.exit(1);
+    }
+    
+    await notifier.notify({
+      event: 'action:complete',
+      platform: 'twitter',
+      action: 'like',
+      success: true,
+      target: 'https://x.com/elonmusk/status/123456789',
+      details: {
+        tweet: 'https://x.com/elonmusk/status/123456789',
+        author: 'elonmusk',
+        preview: 'Just mass-produced the most insane humanoid robot ever. Coming to a store near you soon...',
+        language: 'EN',
+        behaviors: 'Warm-up ✅, Profile check ✅',
+      },
+      timestamp: Date.now(),
+    });
+    
+    console.log('✅ Test X LIKE notification sent');
+  });
+
+notify
+  .command('test-x-follow')
+  .description('Send a test X FOLLOW notification')
+  .action(async () => {
+    const claw = new ClawSocial({ browser: { headless: true } });
+    const notifier = claw.notifier;
+    
+    if (!notifier.isEnabled()) {
+      console.log('❌ Notifications disabled');
+      process.exit(1);
+    }
+    
+    await notifier.notify({
+      event: 'action:complete',
+      platform: 'twitter',
+      action: 'follow',
+      success: true,
+      target: 'vutruso',
+      details: {
+        profileUrl: 'https://x.com/vutruso',
+        followers: 5200,
+        queueRemaining: 12,
+        actions: ['👥 Followed'],
+      },
+      timestamp: Date.now(),
+    });
+    
+    console.log('✅ Test X FOLLOW notification sent');
+  });
+
+notify
+  .command('test-x-reply')
+  .description('Send a test X ENGAGEMENT (Like + Reply) notification')
+  .action(async () => {
+    const claw = new ClawSocial({ browser: { headless: true } });
+    const notifier = claw.notifier;
+    
+    if (!notifier.isEnabled()) {
+      console.log('❌ Notifications disabled');
+      process.exit(1);
+    }
+    
+    await notifier.notify({
+      event: 'action:complete',
+      platform: 'twitter',
+      action: 'comment',
+      success: true,
+      target: 'https://x.com/openai/status/987654321',
+      details: {
+        tweet: 'https://x.com/openai/status/987654321',
+        author: 'openai',
+        preview: 'Introducing GPT-5: The most capable AI model yet. Now available for everyone...',
+        reply: 'Incredible progress! What features are you most excited about? 🚀',
+        language: 'EN',
+        behaviors: 'Warm-up ✅, Profile check ✅',
+      },
+      timestamp: Date.now(),
+    });
+    
+    console.log('✅ Test X ENGAGEMENT notification sent');
+  });
+
+notify
+  .command('test-linkedin-connect')
+  .description('Send a test LINKEDIN CONNECTION notification')
+  .action(async () => {
+    const claw = new ClawSocial({ browser: { headless: true } });
+    const notifier = claw.notifier;
+    
+    if (!notifier.isEnabled()) {
+      console.log('❌ Notifications disabled');
+      process.exit(1);
+    }
+    
+    await notifier.notify({
+      event: 'action:complete',
+      platform: 'linkedin',
+      action: 'connect',
+      success: true,
+      target: 'https://linkedin.com/in/john-developer',
+      details: {
+        profileUrl: 'https://linkedin.com/in/john-developer',
+        degree: '2nd',
+        method: 'Direct',
+        actions: ['🔗 Connection Sent'],
+      },
+      timestamp: Date.now(),
+    });
+    
+    console.log('✅ Test LINKEDIN CONNECTION notification sent');
+  });
+
+notify
+  .command('test-linkedin-comment')
+  .description('Send a test LINKEDIN ENGAGEMENT notification')
+  .action(async () => {
+    const claw = new ClawSocial({ browser: { headless: true } });
+    const notifier = claw.notifier;
+    
+    if (!notifier.isEnabled()) {
+      console.log('❌ Notifications disabled');
+      process.exit(1);
+    }
+    
+    await notifier.notify({
+      event: 'action:complete',
+      platform: 'linkedin',
+      action: 'comment',
+      success: true,
+      target: 'https://linkedin.com/feed/update/urn:li:activity:123456',
+      details: {
+        url: 'https://linkedin.com/feed/update/urn:li:activity:123456',
+        articleTitle: 'The Future of AI Automation in Enterprise',
+        articleAuthor: 'Sarah Chen, CTO at TechVentures',
+        comment: 'Great insights! AI is definitely changing how we approach complex problems. The key is finding the right balance between automation and human oversight.',
+        sessionInfo: 'Morning batch (2/4)',
+        actions: ['❤️ Liked', '💬 Commented'],
+      },
+      timestamp: Date.now(),
+    });
+    
+    console.log('✅ Test LINKEDIN COMMENT notification sent');
+  });
+
+notify
+  .command('test-ig-follow')
+  .description('Send a test INSTAGRAM FOLLOW notification')
+  .action(async () => {
+    const claw = new ClawSocial({ browser: { headless: true } });
+    const notifier = claw.notifier;
+    
+    if (!notifier.isEnabled()) {
+      console.log('❌ Notifications disabled');
+      process.exit(1);
+    }
+    
+    await notifier.notify({
+      event: 'action:complete',
+      platform: 'instagram',
+      action: 'follow',
+      success: true,
+      target: 'techfounder',
+      details: {
+        profileUrl: 'https://instagram.com/techfounder',
+        followers: 12500,
+        actions: ['👥 Followed'],
+      },
+      timestamp: Date.now(),
+    });
+    
+    console.log('✅ Test INSTAGRAM FOLLOW notification sent');
+  });
+
+notify
+  .command('test-ig-comment')
+  .description('Send a test INSTAGRAM COMMENT notification')
+  .action(async () => {
+    const claw = new ClawSocial({ browser: { headless: true } });
+    const notifier = claw.notifier;
+    
+    if (!notifier.isEnabled()) {
+      console.log('❌ Notifications disabled');
+      process.exit(1);
+    }
+    
+    await notifier.notify({
+      event: 'action:complete',
+      platform: 'instagram',
+      action: 'comment',
+      success: true,
+      target: 'https://instagram.com/p/ABC123xyz',
+      details: {
+        postUrl: 'https://instagram.com/p/ABC123xyz',
+        commentText: 'This is fire! 🔥 Keep building!',
+        actions: ['❤️ Liked', '💬 Commented'],
+      },
+      timestamp: Date.now(),
+    });
+    
+    console.log('✅ Test INSTAGRAM COMMENT notification sent');
+  });
+
+notify
+  .command('test-error')
+  .description('Send a test ERROR notification')
+  .action(async () => {
+    const claw = new ClawSocial({ browser: { headless: true } });
+    const notifier = claw.notifier;
+    
+    if (!notifier.isEnabled()) {
+      console.log('❌ Notifications disabled');
+      process.exit(1);
+    }
+    
+    await notifier.notify({
+      event: 'action:error',
+      platform: 'twitter',
+      action: 'like',
+      success: false,
+      target: 'https://x.com/private_account/status/999',
+      error: 'Rate limit exceeded - try again in 15 minutes',
+      details: {
+        postUrl: 'https://x.com/private_account/status/999',
+      },
+      timestamp: Date.now(),
+    });
+    
+    console.log('✅ Test ERROR notification sent');
+  });
+
+notify
+  .command('test-all')
+  .description('Send all test notifications')
+  .action(async () => {
+    const claw = new ClawSocial({ browser: { headless: true } });
+    const notifier = claw.notifier;
+    
+    if (!notifier.isEnabled()) {
+      console.log('❌ Notifications disabled. Set NOTIFY_ENABLED=true');
+      process.exit(1);
+    }
+    
+    console.log('🧪 Sending all test notifications...\n');
+    
+    const tests = [
+      { name: 'X LIKE', platform: 'twitter' as Platform, action: 'like' as ActionType, details: { postUrl: 'https://x.com/test/status/123', author: 'testuser', actions: ['❤️ Liked'], language: 'EN', behaviors: 'Warm-up ✅' } },
+      { name: 'X FOLLOW', platform: 'twitter' as Platform, action: 'follow' as ActionType, details: { profileUrl: 'https://x.com/testuser', followers: 5200, queueRemaining: 8, actions: ['👥 Followed'] } },
+      { name: 'X REPLY', platform: 'twitter' as Platform, action: 'comment' as ActionType, details: { postUrl: 'https://x.com/test/status/456', commentText: 'Great insights!', actions: ['❤️ Liked', '💬 Replied'], language: 'EN' } },
+      { name: 'LINKEDIN CONNECTION', platform: 'linkedin' as Platform, action: 'connect' as ActionType, details: { profileUrl: 'https://linkedin.com/in/test', degree: '2nd', method: 'Direct', actions: ['🔗 Connection Sent'] } },
+      { name: 'LINKEDIN COMMENT', platform: 'linkedin' as Platform, action: 'comment' as ActionType, details: { postUrl: 'https://linkedin.com/feed/update/123', articleTitle: 'AI Future', commentText: 'Great article!', actions: ['❤️ Liked', '💬 Commented'] } },
+      { name: 'INSTAGRAM FOLLOW', platform: 'instagram' as Platform, action: 'follow' as ActionType, details: { profileUrl: 'https://instagram.com/testuser', followers: 12500, actions: ['👥 Followed'] } },
+      { name: 'INSTAGRAM COMMENT', platform: 'instagram' as Platform, action: 'comment' as ActionType, details: { postUrl: 'https://instagram.com/p/ABC123', commentText: 'This is fire! 🔥', actions: ['❤️ Liked', '💬 Commented'] } },
+    ];
+    
+    for (const test of tests) {
+      await notifier.notify({
+        event: 'action:complete',
+        platform: test.platform,
+        action: test.action,
+        success: true,
+        target: test.details.postUrl || test.details.profileUrl || 'test',
+        details: test.details,
+        timestamp: Date.now(),
+      });
+      console.log(`  ✅ ${test.name}`);
+      await new Promise(r => setTimeout(r, 500)); // Small delay between messages
+    }
+    
+    console.log('\n✅ All test notifications sent!');
   });
 
 // Parse arguments

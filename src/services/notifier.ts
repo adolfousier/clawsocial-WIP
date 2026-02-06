@@ -1,8 +1,8 @@
 /**
  * ClawSocial Notification Service
  * 
- * Sends notifications via Telegram, Discord, or custom webhooks
- * when actions complete, errors occur, or rate limits are exceeded.
+ * CENTRALIZED NOTIFICATIONS — See docs/NOTIFICATION_TEMPLATES.md for specs.
+ * All templates defined here. Cron jobs pass context, we format.
  */
 
 import { log } from '../utils/logger.js';
@@ -16,113 +16,341 @@ import type {
 } from '../types/index.js';
 
 // ============================================================================
-// Notification Templates
+// Template Formatters — Match docs/NOTIFICATION_TEMPLATES.md EXACTLY
 // ============================================================================
 
-interface TemplateData {
-  platform: Platform;
-  action: ActionType;
-  success: boolean;
-  target?: string;
+interface NotificationDetails {
+  // Common
+  postUrl?: string;
+  profileUrl?: string;
+  url?: string;
+  
+  // X Engagement
+  tweet?: string;
+  author?: string;
+  preview?: string;
+  reply?: string;
+  language?: string;
+  behaviors?: string;
+  
+  // X Follow
+  username?: string;
+  followers?: number | string;
+  queueRemaining?: number;
+  
+  // LinkedIn Engagement
+  articleTitle?: string;
+  articleAuthor?: string;
+  comment?: string;
+  commentText?: string;
+  sessionInfo?: string;
+  
+  // LinkedIn Connection
+  degree?: string;
+  method?: string;
+  note?: string;
+  
+  // Instagram
+  action?: string;
+  actions?: string[];
+  
+  // Error
   error?: string;
-  details?: Record<string, unknown>;
-  brandFooter: string;
+  attempted?: string;
 }
 
-const PLATFORM_EMOJI: Record<Platform, string> = {
-  linkedin: '🔗',
-  instagram: '📸',
-  twitter: '🐦',
-};
+/**
+ * Format follower count: 1500 -> "1.5K"
+ */
+function formatCount(num: number | string | undefined): string {
+  if (num === undefined) return 'N/A';
+  const n = typeof num === 'string' ? parseInt(num, 10) : num;
+  if (isNaN(n)) return String(num);
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
 
-const ACTION_LABELS: Record<ActionType, string> = {
-  like: 'LIKE',
-  comment: 'COMMENT',
-  follow: 'FOLLOW',
-  unfollow: 'UNFOLLOW',
-  dm: 'DM',
-  post: 'POST',
-  retweet: 'RETWEET',
-  reply: 'REPLY',
-  connect: 'CONNECT SENT',
-  view_story: 'STORY VIEW',
-  view_profile: 'PROFILE VIEW',
-};
+/**
+ * Get current timestamp formatted
+ */
+function getTimestamp(): string {
+  return new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+}
 
-function formatNotification(data: TemplateData): string {
-  const emoji = PLATFORM_EMOJI[data.platform] || '🤖';
-  const actionLabel = ACTION_LABELS[data.action] || data.action.toUpperCase();
-  const platformName = data.platform.toUpperCase();
-  const status = data.success ? '✅' : '❌';
-  
+/**
+ * Add common footer fields (language, behaviors, timestamp)
+ */
+function addFooterFields(lines: string[], d: NotificationDetails): void {
+  if (d.language) lines.push(`**Language:** ${d.language}`);
+  if (d.behaviors) lines.push(`**Behaviors:** ${d.behaviors}`);
+  lines.push(`**Time:** ${getTimestamp()}`);
+}
+
+/**
+ * Format X Engagement notification
+ */
+function formatXEngagement(success: boolean, target: string, d: NotificationDetails): string {
+  const status = success ? '✅' : '❌';
   const lines: string[] = [];
   
-  // Header
-  lines.push(`${emoji} **${platformName} ${actionLabel}** ${status}`);
+  lines.push(`🐦 **X ENGAGEMENT** ${status}`);
   lines.push('');
-  
-  // Target/Profile
-  if (data.target) {
-    if (data.action === 'connect' || data.action === 'follow' || data.action === 'unfollow') {
-      lines.push(`**Profile:** ${extractProfileName(data.target)}`);
-      lines.push(`**URL:** ${data.target}`);
-    } else if (data.action === 'like' || data.action === 'comment') {
-      lines.push(`**Post:** ${data.target}`);
-    } else if (data.action === 'dm') {
-      lines.push(`**To:** ${data.target}`);
-    } else {
-      lines.push(`**Target:** ${data.target}`);
-    }
-  }
-  
-  // Details (degree, method, etc.)
-  if (data.details) {
-    if (data.details.degree) {
-      lines.push(`**Degree:** ${data.details.degree}`);
-    }
-    
-    // Flow section for connect actions
-    if (data.action === 'connect' && data.success) {
-      lines.push('');
-      lines.push('**Flow:**');
-      lines.push('• ✅ Profile loaded');
-      if (data.details.method === 'direct') {
-        lines.push('• ✅ Button detection: Direct Connect');
-        lines.push('• ✅ Method: Direct click');
-      } else if (data.details.method === 'more_dropdown') {
-        lines.push('• ✅ Button detection: Follow + More (no direct Connect)');
-        lines.push('• ✅ Method: More dropdown → Connect');
-      }
-      lines.push('• ✅ Connection request sent');
-    }
-    
-    // Comment text
-    if (data.details.commentText) {
-      lines.push(`**Comment:** "${data.details.commentText}"`);
-    }
-  }
-  
-  // Error message
-  if (!data.success && data.error) {
-    lines.push('');
-    lines.push(`**Error:** ${data.error}`);
-  }
-  
-  // Footer
+  lines.push(`**Tweet:** ${d.tweet || d.postUrl || target}`);
+  if (d.author) lines.push(`**Author:** @${d.author.replace('@', '')}`);
+  if (d.preview) lines.push(`**Preview:** "${d.preview.substring(0, 100)}"`);
   lines.push('');
-  lines.push(data.brandFooter);
+  lines.push('**Actions:**');
+  lines.push('• ❤️ Liked: ✅');
+  if (d.reply || d.commentText) {
+    lines.push(`• 💬 Replied: "${d.reply || d.commentText}"`);
+  }
+  lines.push('');
+  addFooterFields(lines, d);
+  lines.push('');
+  lines.push('_ClawSocial X/Twitter Automation_');
   
   return lines.join('\n');
 }
 
-function extractProfileName(url: string): string {
-  const match = url.match(/linkedin\.com\/in\/([^\/\?]+)/);
-  if (match) return match[1];
-  const igMatch = url.match(/instagram\.com\/([^\/\?]+)/);
-  if (igMatch) return `@${igMatch[1]}`;
-  const twMatch = url.match(/(?:twitter|x)\.com\/([^\/\?]+)/);
-  if (twMatch) return `@${twMatch[1]}`;
+/**
+ * Format X Follow notification
+ */
+function formatXFollow(success: boolean, target: string, d: NotificationDetails): string {
+  const status = success ? '✅' : '❌';
+  const lines: string[] = [];
+  
+  lines.push(`👥 **X FOLLOW** ${status}`);
+  lines.push('');
+  lines.push(`**Target:** @${(d.username || target).replace('@', '')}`);
+  if (d.profileUrl) lines.push(`**Profile:** ${d.profileUrl}`);
+  if (d.followers !== undefined) lines.push(`**Followers:** ${formatCount(d.followers)}`);
+  if (d.queueRemaining !== undefined) lines.push(`**Queue:** ${d.queueRemaining} accounts left`);
+  lines.push('');
+  addFooterFields(lines, d);
+  lines.push('');
+  lines.push('_ClawSocial X/Twitter Automation_');
+  
+  return lines.join('\n');
+}
+
+/**
+ * Format X Like notification (simpler than full engagement)
+ */
+function formatXLike(success: boolean, target: string, d: NotificationDetails): string {
+  const status = success ? '✅' : '❌';
+  const lines: string[] = [];
+  
+  lines.push(`🐦 **X LIKE** ${status}`);
+  lines.push('');
+  lines.push(`**Tweet:** ${d.tweet || d.postUrl || target}`);
+  if (d.author) lines.push(`**Author:** @${d.author.replace('@', '')}`);
+  if (d.preview) lines.push(`**Preview:** "${d.preview.substring(0, 100)}"`);
+  lines.push('');
+  lines.push('**Action:** ❤️ Liked');
+  lines.push('');
+  addFooterFields(lines, d);
+  lines.push('');
+  lines.push('_ClawSocial X/Twitter Automation_');
+  
+  return lines.join('\n');
+}
+
+/**
+ * Format LinkedIn Engagement notification
+ */
+function formatLinkedInEngagement(success: boolean, target: string, d: NotificationDetails): string {
+  const status = success ? '✅' : '❌';
+  const lines: string[] = [];
+  
+  lines.push(`🔗 **LINKEDIN ENGAGEMENT** ${status}`);
+  lines.push('');
+  if (d.articleTitle) {
+    const author = d.articleAuthor || d.author || '';
+    lines.push(`**Article:** "${d.articleTitle}"${author ? ` by ${author}` : ''}`);
+  }
+  lines.push(`**URL:** ${d.url || d.postUrl || target}`);
+  lines.push('');
+  lines.push('**Actions:**');
+  lines.push('• ❤️ Liked: ✅');
+  if (d.comment || d.commentText) {
+    lines.push(`• 💬 Commented: "${d.comment || d.commentText}"`);
+  }
+  lines.push('');
+  if (d.sessionInfo) lines.push(`**Session:** ${d.sessionInfo}`);
+  addFooterFields(lines, d);
+  lines.push('');
+  lines.push('_ClawSocial LinkedIn Automation_');
+  
+  return lines.join('\n');
+}
+
+/**
+ * Format LinkedIn Connection notification
+ */
+function formatLinkedInConnection(success: boolean, target: string, d: NotificationDetails): string {
+  const status = success ? '✅' : '❌';
+  const lines: string[] = [];
+  
+  lines.push(`🔗 **LINKEDIN CONNECTION** ${status}`);
+  lines.push('');
+  lines.push(`**Profile:** ${d.username || extractUsername(target, 'linkedin')}`);
+  lines.push(`**URL:** ${d.profileUrl || d.url || target}`);
+  if (d.degree) lines.push(`**Degree:** ${d.degree}`);
+  if (d.method) lines.push(`**Method:** ${d.method}`);
+  if (d.note) lines.push(`**Note:** "${d.note}"`);
+  lines.push('');
+  addFooterFields(lines, d);
+  lines.push('');
+  lines.push('_ClawSocial LinkedIn Automation_');
+  
+  return lines.join('\n');
+}
+
+/**
+ * Format Instagram Engagement notification
+ */
+function formatInstagramEngagement(success: boolean, target: string, d: NotificationDetails): string {
+  const status = success ? '✅' : '❌';
+  const lines: string[] = [];
+  
+  lines.push(`📸 **INSTAGRAM ENGAGEMENT** ${status}`);
+  lines.push('');
+  lines.push(`**Target:** @${(d.username || extractUsername(target, 'instagram')).replace('@', '')}`);
+  lines.push(`**Post:** ${d.postUrl || d.url || target || 'N/A'}`);
+  
+  // Determine action
+  let actionText = d.action;
+  if (!actionText && d.actions) {
+    actionText = d.actions.join(' + ');
+  }
+  if (!actionText) {
+    actionText = d.comment || d.commentText ? 'Liked + Commented' : 'Liked';
+  }
+  lines.push(`**Action:** ${actionText}`);
+  if (d.comment || d.commentText) {
+    lines.push(`**Comment:** "${d.comment || d.commentText}"`);
+  }
+  lines.push('');
+  addFooterFields(lines, d);
+  lines.push('');
+  lines.push('_ClawSocial Instagram Automation_');
+  
+  return lines.join('\n');
+}
+
+/**
+ * Format Instagram Follow notification
+ */
+function formatInstagramFollow(success: boolean, target: string, d: NotificationDetails): string {
+  const status = success ? '✅' : '❌';
+  const lines: string[] = [];
+  
+  lines.push(`📸 **INSTAGRAM FOLLOW** ${status}`);
+  lines.push('');
+  lines.push(`**Target:** @${(d.username || target).replace('@', '')}`);
+  if (d.profileUrl) lines.push(`**Profile:** ${d.profileUrl}`);
+  if (d.followers !== undefined) lines.push(`**Followers:** ${formatCount(d.followers)}`);
+  if (d.queueRemaining !== undefined) lines.push(`**Queue:** ${d.queueRemaining} accounts left`);
+  lines.push('');
+  addFooterFields(lines, d);
+  lines.push('');
+  lines.push('_ClawSocial Instagram Automation_');
+  
+  return lines.join('\n');
+}
+
+/**
+ * Escape markdown special characters for Telegram
+ */
+function escapeMarkdown(text: string): string {
+  // Escape characters that break Telegram markdown: _ * [ ] ( ) ~ ` > # + - = | { } . !
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+}
+
+/**
+ * Format error notification
+ */
+function formatError(platform: Platform, action: ActionType, target: string, error: string, d: NotificationDetails): string {
+  const emoji = platform === 'twitter' ? '🐦' : platform === 'linkedin' ? '🔗' : '📸';
+  const platformName = platform === 'twitter' ? 'X' : platform.toUpperCase();
+  const actionName = action.toUpperCase();
+  
+  // Escape error message to prevent markdown issues
+  const safeError = escapeMarkdown(error);
+  const safeTarget = escapeMarkdown(target);
+  
+  const lines: string[] = [];
+  lines.push(`${emoji} **${platformName} ${actionName}** ❌`);
+  lines.push('');
+  lines.push(`**Target:** ${safeTarget}`);
+  lines.push(`**Error:** ${safeError}`);
+  if (d.attempted) lines.push(`**Attempted:** ${escapeMarkdown(d.attempted)}`);
+  lines.push('');
+  lines.push(`**Time:** ${getTimestamp()}`);
+  lines.push('');
+  lines.push(`_ClawSocial ${platformName} Automation_`);
+  
+  return lines.join('\n');
+}
+
+/**
+ * Extract username from URL
+ */
+function extractUsername(url: string, platform: Platform): string {
+  if (platform === 'linkedin') {
+    const match = url.match(/linkedin\.com\/in\/([^\/\?]+)/);
+    return match ? match[1] : url;
+  }
+  if (platform === 'instagram') {
+    const match = url.match(/instagram\.com\/([^\/\?]+)/);
+    return match ? match[1] : url;
+  }
+  if (platform === 'twitter') {
+    const match = url.match(/(?:x|twitter)\.com\/([^\/\?]+)/);
+    return match ? match[1] : url;
+  }
   return url;
+}
+
+/**
+ * Main format function — routes to specific formatter
+ */
+function formatNotification(
+  platform: Platform,
+  action: ActionType,
+  success: boolean,
+  target: string,
+  error?: string,
+  details?: Record<string, unknown>
+): string {
+  const d = (details || {}) as NotificationDetails;
+  
+  // Error case
+  if (!success && error) {
+    return formatError(platform, action, target, error, d);
+  }
+  
+  // Route to specific formatter
+  if (platform === 'twitter') {
+    if (action === 'follow') return formatXFollow(success, target, d);
+    if (action === 'like') return formatXLike(success, target, d);
+    if (action === 'comment' || action === 'reply') return formatXEngagement(success, target, d);
+    return formatXEngagement(success, target, d); // Default for X
+  }
+  
+  if (platform === 'linkedin') {
+    if (action === 'connect') return formatLinkedInConnection(success, target, d);
+    return formatLinkedInEngagement(success, target, d); // like, comment
+  }
+  
+  if (platform === 'instagram') {
+    if (action === 'follow') return formatInstagramFollow(success, target, d);
+    return formatInstagramEngagement(success, target, d); // like, comment
+  }
+  
+  // Fallback (should never reach here but TypeScript wants it)
+  return `${String(platform).toUpperCase()} ${String(action).toUpperCase()} ${success ? '✅' : '❌'}\nTarget: ${target}`;
 }
 
 // ============================================================================
@@ -166,15 +394,14 @@ export class Notifier {
       return false;
     }
     
-    const message = formatNotification({
-      platform: payload.platform,
-      action: payload.action,
-      success: payload.success,
-      target: payload.target,
-      error: payload.error,
-      details: payload.details,
-      brandFooter: this.config.brandFooter || '*ClawSocial Automation*',
-    });
+    const message = formatNotification(
+      payload.platform,
+      payload.action,
+      payload.success,
+      payload.target || '',
+      payload.error,
+      payload.details
+    );
     
     return this.broadcast(message);
   }
@@ -222,7 +449,7 @@ This is a test notification from ClawSocial.
 **Status:** ✅ Working
 **Timestamp:** ${new Date().toISOString()}
 
-${this.config.brandFooter || '*ClawSocial Automation*'}`;
+_ClawSocial Automation_`;
     
     if (channel) {
       return this.send(channel, testMessage);

@@ -313,7 +313,10 @@ export class LinkedInHandler extends BasePlatformHandler {
       // Check if already liked
       if (await this.elementExists(SELECTORS.unlikeButton)) {
         log.info('Post already liked');
-        return this.createResult('like', payload.url, startTime, status);
+        return this.createResult('like', payload.url, startTime, status, {
+          postUrl: payload.url,
+          actions: ['❤️ Already Liked'],
+        });
       }
 
       if (!(await this.elementExists(SELECTORS.likeButton))) {
@@ -325,7 +328,10 @@ export class LinkedInHandler extends BasePlatformHandler {
 
       await this.recordAction('like');
       log.info('Successfully liked LinkedIn post');
-      return this.createResult('like', payload.url, startTime, status);
+      return this.createResult('like', payload.url, startTime, status, {
+        postUrl: payload.url,
+        actions: ['❤️ Liked'],
+      });
     } catch (error) {
       log.error('Error liking LinkedIn post', { error: String(error) });
       return this.createErrorResult('like', payload.url, String(error), startTime, status);
@@ -381,7 +387,11 @@ export class LinkedInHandler extends BasePlatformHandler {
       await this.recordAction('comment');
       
       log.info('Successfully commented on LinkedIn post');
-      return this.createResult('comment', payload.url, startTime, status);
+      return this.createResult('comment', payload.url, startTime, status, {
+        postUrl: payload.url,
+        commentText: payload.text,
+        actions: ['💬 Commented'],
+      });
     } catch (error) {
       log.error('Error commenting on LinkedIn post', { error: String(error) });
       return this.createErrorResult('comment', payload.url, String(error), startTime, status);
@@ -412,7 +422,10 @@ export class LinkedInHandler extends BasePlatformHandler {
       // Check if already following
       if (await this.elementExists(SELECTORS.followingButton)) {
         log.info('Already following user');
-        return this.createResult('follow', payload.username, startTime, status);
+        return this.createResult('follow', payload.username, startTime, status, {
+          profileUrl: payload.username.startsWith('http') ? payload.username : `https://linkedin.com/in/${payload.username}`,
+          actions: ['👥 Already Following'],
+        });
       }
 
       if (!(await this.elementExists(SELECTORS.followButton))) {
@@ -424,7 +437,10 @@ export class LinkedInHandler extends BasePlatformHandler {
 
       await this.recordAction('follow');
       log.info('Successfully followed LinkedIn user');
-      return this.createResult('follow', payload.username, startTime, status);
+      return this.createResult('follow', payload.username, startTime, status, {
+        profileUrl: payload.username.startsWith('http') ? payload.username : `https://linkedin.com/in/${payload.username}`,
+        actions: ['👥 Followed'],
+      });
     } catch (error) {
       log.error('Error following LinkedIn user', { error: String(error) });
       return this.createErrorResult('follow', payload.username, String(error), startTime, status);
@@ -659,7 +675,11 @@ export class LinkedInHandler extends BasePlatformHandler {
           await this.recordAction('follow');
           
           log.info('Successfully sent LinkedIn connection request (via More dropdown)');
-          return this.createResult('connect', payload.profileUrl, startTime, status, { method: 'more_dropdown' });
+          return this.createResult('connect', payload.profileUrl, startTime, status, {
+            profileUrl: payload.profileUrl,
+            method: 'More dropdown',
+            actions: ['🔗 Connection Sent'],
+          });
         } else {
           // Close dropdown and continue to other checks
           await page.keyboard.press('Escape');
@@ -669,13 +689,19 @@ export class LinkedInHandler extends BasePlatformHandler {
         // No Connect button, no More button - check if already connected or pending
         if (await this.elementExists(SELECTORS.pendingButton)) {
           log.info('Connection request already pending');
-          return this.createResult('connect', payload.profileUrl, startTime, status);
+          return this.createResult('connect', payload.profileUrl, startTime, status, {
+            profileUrl: payload.profileUrl,
+            actions: ['⏳ Already Pending'],
+          });
         }
         
         // Check if already following
         if (await this.elementExists(SELECTORS.followingButton)) {
           log.info('Already following this profile');
-          return this.createResult('connect', payload.profileUrl, startTime, status);
+          return this.createResult('connect', payload.profileUrl, startTime, status, {
+            profileUrl: payload.profileUrl,
+            actions: ['👥 Already Following'],
+          });
         }
         
         // No Connect, no Pending, no Following - check Message (truly connected)
@@ -684,7 +710,10 @@ export class LinkedInHandler extends BasePlatformHandler {
           const anyConnect = await page.locator('button:has-text("Connect")').count();
           if (anyConnect === 0 || !hasMainFollowButton) {
             log.info('Already connected (no Connect button, has Message)');
-            return this.createResult('connect', payload.profileUrl, startTime, status);
+            return this.createResult('connect', payload.profileUrl, startTime, status, {
+              profileUrl: payload.profileUrl,
+              actions: ['✅ Already Connected'],
+            });
           }
         }
       }
@@ -745,7 +774,11 @@ export class LinkedInHandler extends BasePlatformHandler {
         await this.recordAction('follow');
         
         log.info('Successfully sent LinkedIn connection request');
-        return this.createResult('connect', payload.profileUrl, startTime, status, { method: 'direct' });
+        return this.createResult('connect', payload.profileUrl, startTime, status, {
+          profileUrl: payload.profileUrl,
+          method: 'Direct',
+          actions: ['🔗 Connection Sent'],
+        });
       } else if (hasFollowButton && mainFollowButton) {
         // Fallback to Follow for profiles with Follow-first mode - click the actual button
         log.info('No Connect button, falling back to Follow');
@@ -754,7 +787,11 @@ export class LinkedInHandler extends BasePlatformHandler {
         await this.recordAction('follow');
         
         log.info('Successfully followed LinkedIn profile (Follow-first mode)');
-        return this.createResult('follow', payload.profileUrl, startTime, status);
+        return this.createResult('follow', payload.profileUrl, startTime, status, {
+          profileUrl: payload.profileUrl,
+          method: 'Follow-first mode',
+          actions: ['👥 Followed'],
+        });
       }
 
       return this.createErrorResult('connect', payload.profileUrl, 'Could not complete action', startTime, status);
@@ -819,7 +856,11 @@ export class LinkedInHandler extends BasePlatformHandler {
       await this.recordAction('dm');
       
       log.info('Successfully sent LinkedIn message');
-      return this.createResult('dm', payload.username, startTime, status);
+      return this.createResult('dm', payload.username, startTime, status, {
+        profileUrl: payload.username.startsWith('http') ? payload.username : `https://linkedin.com/in/${payload.username}`,
+        messagePreview: payload.message,
+        actions: ['✉️ Message Sent'],
+      });
     } catch (error) {
       log.error('Error sending LinkedIn message', { error: String(error) });
       return this.createErrorResult('dm', payload.username, String(error), startTime, status);

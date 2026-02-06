@@ -443,7 +443,10 @@ export class InstagramHandler extends BasePlatformHandler {
       // Check if already liked
       if (await this.elementExists(SELECTORS.unlikeButton)) {
         log.info('Post already liked');
-        return this.createResult('like', payload.url, startTime, status);
+        return this.createResult('like', payload.url, startTime, status, {
+          postUrl: payload.url,
+          actions: ['❤️ Already Liked'],
+        });
       }
 
       // Find and click like button
@@ -458,7 +461,10 @@ export class InstagramHandler extends BasePlatformHandler {
       if (await this.elementExists(SELECTORS.unlikeButton)) {
         await this.recordAction('like');
         log.info('Successfully liked Instagram post');
-        return this.createResult('like', payload.url, startTime, status);
+        return this.createResult('like', payload.url, startTime, status, {
+          postUrl: payload.url,
+          actions: ['❤️ Liked'],
+        });
       }
 
       return this.createErrorResult('like', payload.url, 'Like action failed', startTime, status);
@@ -518,7 +524,11 @@ export class InstagramHandler extends BasePlatformHandler {
       await this.recordAction('comment');
       
       log.info('Successfully commented on Instagram post');
-      return this.createResult('comment', payload.url, startTime, status);
+      return this.createResult('comment', payload.url, startTime, status, {
+        postUrl: payload.url,
+        commentText: payload.text,
+        actions: ['💬 Commented'],
+      });
     } catch (error) {
       log.error('Error commenting on Instagram post', { error: String(error) });
       return this.createErrorResult('comment', payload.url, String(error), startTime, status);
@@ -547,7 +557,10 @@ export class InstagramHandler extends BasePlatformHandler {
       // Check if already following
       if (await this.elementExists(SELECTORS.unfollowButton)) {
         log.info('Already following user');
-        return this.createResult('follow', payload.username, startTime, status);
+        return this.createResult('follow', payload.username, startTime, status, {
+          profileUrl: `https://instagram.com/${payload.username}`,
+          actions: ['👥 Already Following'],
+        });
       }
 
       // Find and click follow button
@@ -562,7 +575,10 @@ export class InstagramHandler extends BasePlatformHandler {
       if (await this.elementExists(SELECTORS.unfollowButton)) {
         await this.recordAction('follow');
         log.info('Successfully followed Instagram user');
-        return this.createResult('follow', payload.username, startTime, status);
+        return this.createResult('follow', payload.username, startTime, status, {
+          profileUrl: `https://instagram.com/${payload.username}`,
+          actions: ['👥 Followed'],
+        });
       }
 
       return this.createErrorResult('follow', payload.username, 'Follow action failed', startTime, status);
@@ -594,7 +610,10 @@ export class InstagramHandler extends BasePlatformHandler {
       // Check if not following
       if (!(await this.elementExists(SELECTORS.unfollowButton))) {
         log.info('Not following user');
-        return this.createResult('unfollow', payload.username, startTime, status);
+        return this.createResult('unfollow', payload.username, startTime, status, {
+          profileUrl: `https://instagram.com/${payload.username}`,
+          actions: ['👋 Not Following'],
+        });
       }
 
       // Click following button
@@ -611,7 +630,10 @@ export class InstagramHandler extends BasePlatformHandler {
       if (await this.elementExists(SELECTORS.followButton)) {
         await this.recordAction('follow');
         log.info('Successfully unfollowed Instagram user');
-        return this.createResult('unfollow', payload.username, startTime, status);
+        return this.createResult('unfollow', payload.username, startTime, status, {
+          profileUrl: `https://instagram.com/${payload.username}`,
+          actions: ['👋 Unfollowed'],
+        });
       }
 
       return this.createErrorResult('unfollow', payload.username, 'Unfollow action failed', startTime, status);
@@ -670,7 +692,11 @@ export class InstagramHandler extends BasePlatformHandler {
       await this.recordAction('dm');
       
       log.info('Successfully sent Instagram DM');
-      return this.createResult('dm', payload.username, startTime, status);
+      return this.createResult('dm', payload.username, startTime, status, {
+        profileUrl: `https://instagram.com/${payload.username}`,
+        messagePreview: payload.message,
+        actions: ['✉️ DM Sent'],
+      });
     } catch (error) {
       log.error('Error sending Instagram DM', { error: String(error) });
       return this.createErrorResult('dm', payload.username, String(error), startTime, status);

@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.36] - 2026-02-06
+
+### Changed
+- **Project restructure**: Moved `docs/`, `examples/`, `scripts/` into `src/`
+  - `src/docs/` - Documentation files
+  - `src/examples/` - Example templates including CRONJOB_TEMPLATE.md
+  - `src/scripts/` - Automation scripts (engage.ts, ig-engage.ts, sync-bird-cookies.ts)
+- **Updated all references**: CLI, cron jobs, and documentation now use `src/scripts/` paths
+
+## [0.0.36] - 2026-02-06
+
+### Added
+- **Automatic retries**: All CLI commands now include automatic retry logic
+  - Default: 3 attempts with 5s delay between retries
+  - Configurable via `--retries <n>` flag (1-10)
+  - Console output shows retry progress
+  - Error notifications sent after all retries exhausted
+- **`notify report` command**: Agents can send formatted notifications directly
+  - Usage: `npm run cli -- notify report <platform> <action> <target> --context='<json>'`
+  - Supports all platforms: twitter, linkedin, instagram
+  - Supports all actions: like, comment, follow, connect
+- **`--context` flag for all actions**: Pass JSON context to merge with notifications
+- **`CLAWSOCIAL_SILENT=1` env var**: Suppress auto-notifications when using combined reports
+
+### Changed
+- **Notification templates standardized**: All notifications now include:
+  - Language field (when provided)
+  - Behaviors field (when provided)
+  - Time field (always, UTC timestamp)
+  - Italic footer: `_ClawSocial [Platform] Automation_`
+- **Cron jobs updated**: All 44 jobs now use ClawSocial's centralized notification system
+
+### Documentation
+- **`examples/CRONJOB_TEMPLATE.md`**: Complete reference for all cron job patterns
+- **`docs/NOTIFICATION_TEMPLATES.md`**: Exact notification output formats
+
 ## [0.0.35] - 2026-02-06
 
 ### Changed
