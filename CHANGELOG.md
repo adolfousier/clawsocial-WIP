@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.35] - 2026-02-06
+
+### Changed
+- **Dependencies upgraded to latest**: All packages updated to current versions
+  - Node.js 24+ (LTS) requirement
+  - TypeScript 5.9.3
+  - Playwright 1.58.1
+  - Express 5.2.1
+  - Zod 4.3.6
+  - Commander 14.0.3
+  - And 12 more packages
+
+### Fixed
+- **Express 5 compatibility**: Fixed TypeScript errors with `req.params` type assertions
+
 ## [0.0.34] - 2026-02-06
 
 ### Removed

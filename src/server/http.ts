@@ -173,7 +173,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
 
   app.get('/api/instagram/profile/:username', async (req: Request, res: Response) => {
     try {
-      const { username } = req.params;
+      const username = req.params.username as string;
       const profile = await clawSocial.instagram.getProfile(username);
       res.json(profile);
     } catch (error) {
@@ -278,7 +278,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
 
   app.get('/api/twitter/profile/:username', async (req: Request, res: Response) => {
     try {
-      const { username } = req.params;
+      const username = req.params.username as string;
       const profile = await clawSocial.twitter.getProfile(username);
       res.json(profile);
     } catch (error) {
@@ -353,7 +353,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
 
   app.get('/api/linkedin/profile/:username', async (req: Request, res: Response) => {
     try {
-      const { username } = req.params;
+      const username = req.params.username as string;
       const profile = await clawSocial.linkedin.getProfile(username);
       res.json(profile);
     } catch (error) {

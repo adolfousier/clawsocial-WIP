@@ -1,7 +1,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Node](https://img.shields.io/badge/Node-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Playwright](https://img.shields.io/badge/Playwright-1.48+-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
+![Node](https://img.shields.io/badge/Node-24+-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-1.58+-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
 
 
 # 🦀 ClawSocial
@@ -197,7 +197,7 @@ Follow this research-first workflow to avoid rate limits and bans:
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24+ (LTS)
 - npm or pnpm
 
 ### Quick Start (Human)
