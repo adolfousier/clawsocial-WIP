@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.39] - 2026-02-08
+
+### Fixed
+- **LinkedIn search returning 0 posts**: Old regex only matched `href="...feed/update/urn:li:..."` links which LinkedIn no longer renders in HTML. Added fallback strategy that extracts URNs embedded anywhere in page source.
+- **LinkedIn search URL**: Fixed `sortBy` parameter encoding to match LinkedIn's actual URL format.
+- **Scroll performance**: Replaced `think()` delays (2-5s each) with fixed 1.5s `waitForTimeout` for search scrolling — faster scraping without unnecessary human-like pauses.
+
 ## [0.0.38] - 2026-02-06
 
 ### Removed

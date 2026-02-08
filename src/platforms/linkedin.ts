@@ -927,34 +927,43 @@ export class LinkedInHandler extends BasePlatformHandler {
       log.info('Searching LinkedIn', { query });
 
       const page = await this.getPage();
-      const searchUrl = `${this.baseUrl}/search/results/content/?keywords=${encodeURIComponent(query)}&sortBy=%22date_posted%22`;
+      const searchUrl = `${this.baseUrl}/search/results/content/?keywords=${encodeURIComponent(query)}&origin=GLOBAL_SEARCH_HEADER&sortBy=%5B%22date_posted%22%5D`;
       
       await this.navigate(searchUrl);
       await this.think();
 
       // Scroll to load more content
-      for (let i = 0; i < 5; i++) {
-        await page.evaluate('window.scrollBy(0, 600)');
-        await this.think();
+      for (let i = 0; i < 10; i++) {
+        await page.evaluate('window.scrollBy(0, 1000)');
+        await page.waitForTimeout(1500);
       }
 
       // Get HTML
       const html = await page.content();
 
-      // Extract posts from HTML (feed/update URLs, not pulse articles)
+      // Extract posts from HTML
       const posts: Array<{ url: string; urn: string; preview?: string }> = [];
       const seen = new Set<string>();
 
-      // Match LinkedIn post URLs (feed/update/urn:li:share:... or ugcPost:... or activity:...)
-      const postRegex = /href="(https:\/\/www\.linkedin\.com\/feed\/update\/(urn:li:(?:share|ugcPost|activity):[0-9]+)[^"]*)"/g;
+      // Strategy 1: Match feed/update href links (classic format)
+      const hrefRegex = /href="(https:\/\/www\.linkedin\.com\/feed\/update\/(urn:li:(?:share|ugcPost|activity):[0-9]+)[^"]*)"/g;
       let match;
-      while ((match = postRegex.exec(html)) !== null) {
-        const fullUrl = match[1].split('?')[0]; // Remove tracking params
+      while ((match = hrefRegex.exec(html)) !== null) {
+        const fullUrl = match[1].split('?')[0];
         const urn = match[2];
         if (seen.has(urn)) continue;
         seen.add(urn);
-
         posts.push({ url: fullUrl, urn });
+      }
+
+      // Strategy 2: Extract URNs embedded anywhere in HTML (modern LinkedIn)
+      const urnRegex = /urn:li:(activity|ugcPost|share):([0-9]+)/g;
+      while ((match = urnRegex.exec(html)) !== null) {
+        const urn = match[0];
+        if (seen.has(urn)) continue;
+        seen.add(urn);
+        const url = `https://www.linkedin.com/feed/update/${urn}`;
+        posts.push({ url, urn });
       }
 
       log.info('LinkedIn search complete', { query, postsFound: posts.length });
