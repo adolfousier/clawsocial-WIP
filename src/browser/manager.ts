@@ -125,7 +125,14 @@ export class BrowserManager {
     const page = await this.getPage(platform);
 
     log.debug(`Navigating to ${url}`);
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } catch (error) {
+      log.warn(`Navigation timeout/error for ${url}, retrying with networkidle...`, { error: String(error) });
+      // Try again with longer timeout and different wait strategy
+      await page.goto(url, { waitUntil: 'commit', timeout: 30000 });
+    }
+    log.debug(`Navigation complete: ${page.url()}`);
     await pageLoadDelay();
 
     return page;

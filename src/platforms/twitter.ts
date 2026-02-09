@@ -364,27 +364,36 @@ export class TwitterHandler extends BasePlatformHandler {
       await this.navigate(payload.url);
       await this.think();
 
-      // Click reply button
-      if (!(await this.waitForElement(SELECTORS.replyButton, 10000))) {
-        return this.createErrorResult('comment', payload.url, 'Reply button not found', startTime, status);
-      }
+      const page = await this.getPage();
 
-      await this.clickHuman(SELECTORS.replyButton);
-      await this.pause();
+      // Strategy 1: Check if reply input already exists inline (tweet detail page)
+      let hasInlineInput = await this.elementExists(SELECTORS.replyInput);
 
-      // Wait for reply input
-      if (!(await this.waitForElement(SELECTORS.replyInput, 10000))) {
-        return this.createErrorResult('comment', payload.url, 'Reply input not found', startTime, status);
+      if (!hasInlineInput) {
+        // Strategy 2: Click reply button to open modal/inline reply
+        if (!(await this.waitForElement(SELECTORS.replyButton, 10000))) {
+          return this.createErrorResult('comment', payload.url, 'Reply button not found', startTime, status);
+        }
+
+        await this.clickHuman(SELECTORS.replyButton);
+        await this.pause();
+
+        // Wait for reply input (modal or inline)
+        if (!(await this.waitForElement(SELECTORS.replyInput, 10000))) {
+          // Strategy 3: Check for dialog-based reply input
+          const dialogInput = await page.locator('[role="dialog"] [data-testid="tweetTextarea_0"]').count();
+          if (dialogInput === 0) {
+            return this.createErrorResult('comment', payload.url, 'Reply input not found', startTime, status);
+          }
+        }
       }
 
       // Type reply
       await this.clickHuman(SELECTORS.replyInput);
-      
-      const page = await this.getPage();
       await page.keyboard.type(payload.text, { delay: 50 });
       await this.pause();
 
-      // Submit reply
+      // Submit reply — try multiple selectors
       if (!(await this.elementExists(SELECTORS.tweetButton))) {
         return this.createErrorResult('comment', payload.url, 'Reply submit button not found', startTime, status);
       }

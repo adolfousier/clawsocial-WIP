@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.43] - 2026-02-09
+
+### Fixed
+- **Navigate timeout**: Added explicit 30s timeout to `page.goto()` in `BrowserManager.navigate()`. Previously navigation could hang indefinitely on slow-loading pages (especially LinkedIn search). Falls back to `commit` wait strategy on timeout.
+- **X reply input resilience**: Reply flow now uses 3-strategy approach: (1) check for existing inline textarea on detail pages, (2) click reply button for modal/inline, (3) check dialog-based input as fallback. Fixes edge cases where reply input appears in unexpected locations.
+
+## [0.0.42] - 2026-02-08
+
+### Fixed
+- **X reply modal vs inline submit button**: Reply click opens a modal dialog. Modal uses `[data-testid="tweetButton"]`, inline uses `[data-testid="tweetButtonInline"]`. Selector now tries both. Silent skip on missing submit button replaced with explicit error.
+
 ## [0.0.41] - 2026-02-08
 
 ### Fixed
