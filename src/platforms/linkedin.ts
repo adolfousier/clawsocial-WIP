@@ -371,11 +371,12 @@ export class LinkedInHandler extends BasePlatformHandler {
         return this.createErrorResult('comment', payload.url, 'Comment input not found', startTime, status);
       }
 
-      // Type comment
+      // Sanitize and type comment
+      const sanitizedText = this.sanitizeText(payload.text);
       await this.clickHuman(SELECTORS.commentInput);
       
       const page = await this.getPage();
-      await page.keyboard.type(payload.text, { delay: 50 });
+      await page.keyboard.type(sanitizedText, { delay: 50 });
       await this.pause();
 
       // Submit comment
@@ -389,7 +390,7 @@ export class LinkedInHandler extends BasePlatformHandler {
       log.info('Successfully commented on LinkedIn post');
       return this.createResult('comment', payload.url, startTime, status, {
         postUrl: payload.url,
-        commentText: payload.text,
+        commentText: sanitizedText,
         actions: ['💬 Commented'],
       });
     } catch (error) {

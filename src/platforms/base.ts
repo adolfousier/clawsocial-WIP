@@ -164,6 +164,31 @@ export abstract class BasePlatformHandler {
   }
 
   /**
+   * Sanitize comment/reply text before posting.
+   * Enforces style rules that LLMs sometimes ignore:
+   * - Replaces em-dashes (—) with commas
+   * - Replaces en-dashes (–) with hyphens
+   */
+  protected sanitizeText(text: string): string {
+    let sanitized = text;
+    // Em-dash → comma (matches VOICE.md absolute ban)
+    sanitized = sanitized.replace(/\s*—\s*/g, ', ');
+    // En-dash → hyphen
+    sanitized = sanitized.replace(/\s*–\s*/g, '-');
+    // Clean up double commas or comma-period
+    sanitized = sanitized.replace(/,\s*,/g, ',');
+    sanitized = sanitized.replace(/,\s*\./g, '.');
+    // Trim trailing/leading whitespace
+    sanitized = sanitized.trim();
+    
+    if (sanitized !== text) {
+      log.info('Text sanitized', { original: text, sanitized });
+    }
+    
+    return sanitized;
+  }
+
+  /**
    * Type text character by character with human-like timing
    */
   protected async typeHuman(

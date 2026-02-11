@@ -505,8 +505,9 @@ export class InstagramHandler extends BasePlatformHandler {
       await this.clickHuman(SELECTORS.commentInput);
       await this.pause();
 
-      // Type comment
-      await this.typeHuman(SELECTORS.commentInput, payload.text);
+      // Sanitize and type comment
+      const sanitizedText = this.sanitizeText(payload.text);
+      await this.typeHuman(SELECTORS.commentInput, sanitizedText);
       await this.pause();
 
       // Submit comment
@@ -526,7 +527,7 @@ export class InstagramHandler extends BasePlatformHandler {
       log.info('Successfully commented on Instagram post');
       return this.createResult('comment', payload.url, startTime, status, {
         postUrl: payload.url,
-        commentText: payload.text,
+        commentText: sanitizedText,
         actions: ['💬 Commented'],
       });
     } catch (error) {

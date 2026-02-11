@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.45] - 2026-02-11
+
+### Added
+- **Text sanitization for all platforms**: New `sanitizeText()` method in `BasePlatformHandler` automatically cleans comment/reply text before posting. Applied to Twitter (reply + post), LinkedIn (comment), and Instagram (comment).
+  - Em-dashes (—) replaced with commas
+  - En-dashes (–) replaced with hyphens
+  - Cleans up resulting double commas and comma-period sequences
+  - Logs when sanitization modifies text for audit trail
+
 ## [0.0.44] - 2026-02-09
 
 ### Fixed

@@ -388,9 +388,10 @@ export class TwitterHandler extends BasePlatformHandler {
         }
       }
 
-      // Type reply
+      // Sanitize and type reply
+      const sanitizedText = this.sanitizeText(payload.text);
       await this.clickHuman(SELECTORS.replyInput);
-      await page.keyboard.type(payload.text, { delay: 50 });
+      await page.keyboard.type(sanitizedText, { delay: 50 });
       await this.pause();
 
       // Submit reply — try multiple selectors
@@ -405,7 +406,7 @@ export class TwitterHandler extends BasePlatformHandler {
       log.info('Successfully replied to tweet');
       return this.createResult('comment', payload.url, startTime, status, {
         postUrl: payload.url,
-        commentText: payload.text,
+        commentText: sanitizedText,
         actions: ['💬 Replied'],
       });
     } catch (error) {
@@ -656,11 +657,12 @@ export class TwitterHandler extends BasePlatformHandler {
         return this.createErrorResult('post', payload.text, 'Tweet input not found', startTime, status);
       }
 
-      // Type tweet
+      // Sanitize and type tweet
+      const sanitizedText = this.sanitizeText(payload.text);
       await this.clickHuman(SELECTORS.tweetInput);
       
       const page = await this.getPage();
-      await page.keyboard.type(payload.text, { delay: 50 });
+      await page.keyboard.type(sanitizedText, { delay: 50 });
       await this.pause();
 
       // Post tweet
@@ -674,7 +676,7 @@ export class TwitterHandler extends BasePlatformHandler {
       
       log.info('Successfully posted tweet');
       return this.createResult('post', payload.text.substring(0, 50), startTime, status, {
-        commentText: payload.text,
+        commentText: sanitizedText,
         actions: ['📝 Posted'],
       });
     } catch (error) {

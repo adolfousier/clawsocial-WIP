@@ -71,6 +71,7 @@
   - Session persistence across restarts
   - Stealth mode (anti-detection measures)
   - Automatic error recovery with exponential backoff
+  - **Text sanitization**: Auto-cleans em-dashes, en-dashes, and other style violations before posting on all platforms
 
 - **📊 Platform-Specific**
   - **Instagram**: Follower scraping, post engagement, DMs
