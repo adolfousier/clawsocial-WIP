@@ -1,8 +1,8 @@
 #!/usr/bin/env npx tsx
-import { ClawSocial } from '../src/index.js';
+import { SocialCrabs } from '../src/index.js';
 
 async function test() {
-  const claw = new ClawSocial({ browser: { headless: true } });
+  const claw = new SocialCrabs({ browser: { headless: true } });
   await claw.initialize();
   
   const page = await claw.linkedin.getPage();
@@ -41,11 +41,11 @@ async function test() {
       // Now let's test the actual connect function
       console.log(`\n=== ATTEMPTING CONNECTION ===`);
       
-      // Use the actual ClawSocial connect
+      // Use the actual SocialCrabs connect
       await claw.shutdown();
       
       // Re-init and test
-      const claw2 = new ClawSocial({ browser: { headless: true } });
+      const claw2 = new SocialCrabs({ browser: { headless: true } });
       await claw2.initialize();
       
       const result = await claw2.linkedin.connect({ profileUrl: url });

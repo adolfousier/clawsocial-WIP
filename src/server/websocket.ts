@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { log } from '../utils/logger.js';
-import type { ClawSocial } from '../index.js';
+import type { SocialCrabs } from '../index.js';
 import type { WSMessage, Platform, ActionType } from '../types/index.js';
 
 interface WSClient {
@@ -13,11 +13,11 @@ interface WSClient {
 export class WebSocketManager {
   private wss: WebSocketServer | null = null;
   private clients: Map<string, WSClient> = new Map();
-  private clawSocial: ClawSocial;
+  private socialCrabs: SocialCrabs;
   private apiKey?: string;
 
-  constructor(clawSocial: ClawSocial, apiKey?: string) {
-    this.clawSocial = clawSocial;
+  constructor(socialCrabs: SocialCrabs, apiKey?: string) {
+    this.socialCrabs = socialCrabs;
     this.apiKey = apiKey;
   }
 
@@ -189,7 +189,7 @@ export class WebSocketManager {
     action: ActionType,
     payload: Record<string, unknown>
   ): Promise<unknown> {
-    const handler = this.clawSocial.instagram;
+    const handler = this.socialCrabs.instagram;
 
     switch (action) {
       case 'like':
@@ -222,7 +222,7 @@ export class WebSocketManager {
     action: ActionType,
     payload: Record<string, unknown>
   ): Promise<unknown> {
-    const handler = this.clawSocial.twitter;
+    const handler = this.socialCrabs.twitter;
 
     switch (action) {
       case 'like':
@@ -260,7 +260,7 @@ export class WebSocketManager {
     action: ActionType,
     payload: Record<string, unknown>
   ): Promise<unknown> {
-    const handler = this.clawSocial.linkedin;
+    const handler = this.socialCrabs.linkedin;
 
     switch (action) {
       case 'like':

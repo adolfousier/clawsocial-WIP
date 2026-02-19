@@ -1,11 +1,11 @@
 {
-  "name": "clawsocial",
-  "version": "0.0.45",
+  "name": "socialcrabs",
+  "version": "0.0.47",
   "description": "Production-ready social media automation platform with human-like behavior simulation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "clawsocial": "./dist/cli.js"
+    "socialcrabs": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -32,12 +32,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/adolfousier/clawsocial.git"
+    "url": "https://github.com/adolfousier/socialcrabs.git"
   },
   "bugs": {
-    "url": "https://github.com/adolfousier/clawsocial/issues"
+    "url": "https://github.com/adolfousier/socialcrabs/issues"
   },
-  "homepage": "https://github.com/adolfousier/clawsocial#readme",
+  "homepage": "https://github.com/adolfousier/socialcrabs#readme",
   "engines": {
     "node": ">=18.0.0"
   },

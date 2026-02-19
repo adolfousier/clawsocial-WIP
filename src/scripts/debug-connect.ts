@@ -1,10 +1,10 @@
 #!/usr/bin/env npx tsx
-import { ClawSocial } from '../src/index.js';
+import { SocialCrabs } from '../src/index.js';
 
 async function test() {
   const profile = process.argv[2] || 'https://www.linkedin.com/in/isroil-shafiev-157375238/';
   
-  const claw = new ClawSocial({ browser: { headless: true } });
+  const claw = new SocialCrabs({ browser: { headless: true } });
   await claw.initialize();
   
   const page = await claw.linkedin.getPage();

@@ -1,5 +1,5 @@
 /**
- * ClawSocial Notification Service
+ * SocialCrabs Notification Service
  * 
  * CENTRALIZED NOTIFICATIONS — See docs/NOTIFICATION_TEMPLATES.md for specs.
  * All templates defined here. Cron jobs pass context, we format.
@@ -108,7 +108,7 @@ function formatXEngagement(success: boolean, target: string, d: NotificationDeta
   lines.push('');
   addFooterFields(lines, d);
   lines.push('');
-  lines.push('_ClawSocial X/Twitter Automation_');
+  lines.push('_SocialCrabs X/Twitter Automation_');
   
   return lines.join('\n');
 }
@@ -129,7 +129,7 @@ function formatXFollow(success: boolean, target: string, d: NotificationDetails)
   lines.push('');
   addFooterFields(lines, d);
   lines.push('');
-  lines.push('_ClawSocial X/Twitter Automation_');
+  lines.push('_SocialCrabs X/Twitter Automation_');
   
   return lines.join('\n');
 }
@@ -152,7 +152,7 @@ function formatXLike(success: boolean, target: string, d: NotificationDetails): 
   lines.push('');
   addFooterFields(lines, d);
   lines.push('');
-  lines.push('_ClawSocial X/Twitter Automation_');
+  lines.push('_SocialCrabs X/Twitter Automation_');
   
   return lines.join('\n');
 }
@@ -181,7 +181,7 @@ function formatLinkedInEngagement(success: boolean, target: string, d: Notificat
   if (d.sessionInfo) lines.push(`**Session:** ${d.sessionInfo}`);
   addFooterFields(lines, d);
   lines.push('');
-  lines.push('_ClawSocial LinkedIn Automation_');
+  lines.push('_SocialCrabs LinkedIn Automation_');
   
   return lines.join('\n');
 }
@@ -203,7 +203,7 @@ function formatLinkedInConnection(success: boolean, target: string, d: Notificat
   lines.push('');
   addFooterFields(lines, d);
   lines.push('');
-  lines.push('_ClawSocial LinkedIn Automation_');
+  lines.push('_SocialCrabs LinkedIn Automation_');
   
   return lines.join('\n');
 }
@@ -235,7 +235,7 @@ function formatInstagramEngagement(success: boolean, target: string, d: Notifica
   lines.push('');
   addFooterFields(lines, d);
   lines.push('');
-  lines.push('_ClawSocial Instagram Automation_');
+  lines.push('_SocialCrabs Instagram Automation_');
   
   return lines.join('\n');
 }
@@ -256,7 +256,7 @@ function formatInstagramFollow(success: boolean, target: string, d: Notification
   lines.push('');
   addFooterFields(lines, d);
   lines.push('');
-  lines.push('_ClawSocial Instagram Automation_');
+  lines.push('_SocialCrabs Instagram Automation_');
   
   return lines.join('\n');
 }
@@ -290,7 +290,7 @@ function formatError(platform: Platform, action: ActionType, target: string, err
   lines.push('');
   lines.push(`**Time:** ${getTimestamp()}`);
   lines.push('');
-  lines.push(`_ClawSocial ${platformName} Automation_`);
+  lines.push(`_SocialCrabs ${platformName} Automation_`);
   
   return lines.join('\n');
 }
@@ -445,12 +445,12 @@ export class Notifier {
   async sendTest(channel?: NotificationChannel): Promise<boolean> {
     const testMessage = `🧪 **NOTIFICATION TEST**
 
-This is a test notification from ClawSocial.
+This is a test notification from SocialCrabs.
 
 **Status:** ✅ Working
 **Timestamp:** ${new Date().toISOString()}
 
-_ClawSocial Automation_`;
+_SocialCrabs Automation_`;
     
     if (channel) {
       return this.send(channel, testMessage);
@@ -522,7 +522,7 @@ _ClawSocial Automation_`;
       const response = await fetch(cfg.url, {
         method: cfg.method || 'POST',
         headers: { 'Content-Type': 'application/json', ...cfg.headers },
-        body: JSON.stringify({ message, timestamp: Date.now(), source: 'clawsocial' }),
+        body: JSON.stringify({ message, timestamp: Date.now(), source: 'socialcrabs' }),
       });
       
       if (!response.ok) {

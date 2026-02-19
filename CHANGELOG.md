@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.40] - 2026-02-08
 
 ### Added
-- **Built-in X/Twitter GraphQL client**: Vendored bird CLI's core GraphQL client into ClawSocial. Single tool, full ownership, zero external dependency.
+- **Built-in X/Twitter GraphQL client**: Vendored bird CLI's core GraphQL client into SocialCrabs. Single tool, full ownership, zero external dependency.
   - `src/graphql/client.ts` — `XGraphQLClient` class with search, home timeline, mentions, tweet detail, current user
   - `src/graphql/types.ts` — Tweet, XUser, SearchResult interfaces
   - `src/graphql/constants.ts` — API base URL, query IDs, tweet ID extraction
@@ -49,11 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `src/graphql/utils.ts` — Tweet parsing, cursor extraction, media/text extraction
   - `src/graphql/query-ids.json` + `features.json` — Static query parameters
 - **5 new CLI commands**: `x search`, `x home`, `x mentions`, `x whoami`, `x read`
-  - `clawsocial x search "query" -n 10` — Search tweets
-  - `clawsocial x home -n 8` — Home timeline
-  - `clawsocial x mentions -n 5` — Recent mentions
-  - `clawsocial x whoami` — Current authenticated user
-  - `clawsocial x read <url>` — Read specific tweet detail
+  - `socialcrabs x search "query" -n 10` — Search tweets
+  - `socialcrabs x home -n 8` — Home timeline
+  - `socialcrabs x mentions -n 5` — Recent mentions
+  - `socialcrabs x whoami` — Current authenticated user
+  - `socialcrabs x read <url>` — Read specific tweet detail
 
 ### Changed
 - **README updated**: Replaced bird CLI references with built-in GraphQL commands. Added X GraphQL section to Quick Commands.
@@ -120,15 +120,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supports all platforms: twitter, linkedin, instagram
   - Supports all actions: like, comment, follow, connect
 - **`--context` flag for all actions**: Pass JSON context to merge with notifications
-- **`CLAWSOCIAL_SILENT=1` env var**: Suppress auto-notifications when using combined reports
+- **`SOCIALCRABS_SILENT=1` env var**: Suppress auto-notifications when using combined reports
 
 ### Changed
 - **Notification templates standardized**: All notifications now include:
   - Language field (when provided)
   - Behaviors field (when provided)
   - Time field (always, UTC timestamp)
-  - Italic footer: `_ClawSocial [Platform] Automation_`
-- **Cron jobs updated**: All 44 jobs now use ClawSocial's centralized notification system
+  - Italic footer: `_SocialCrabs [Platform] Automation_`
+- **Cron jobs updated**: All 44 jobs now use SocialCrabs's centralized notification system
 
 ### Documentation
 - **`examples/CRONJOB_TEMPLATE.md`**: Complete reference for all cron job patterns
@@ -147,15 +147,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supports all platforms: twitter, linkedin, instagram
   - Supports all actions: like, comment, follow, connect
 - **`--context` flag for all actions**: Pass JSON context to merge with notifications
-- **`CLAWSOCIAL_SILENT=1` env var**: Suppress auto-notifications when using combined reports
+- **`SOCIALCRABS_SILENT=1` env var**: Suppress auto-notifications when using combined reports
 
 ### Changed
 - **Notification templates standardized**: All notifications now include:
   - Language field (when provided)
   - Behaviors field (when provided)
   - Time field (always, UTC timestamp)
-  - Italic footer: `_ClawSocial [Platform] Automation_`
-- **Cron jobs updated**: All 44 jobs now use ClawSocial's centralized notification system
+  - Italic footer: `_SocialCrabs [Platform] Automation_`
+- **Cron jobs updated**: All 44 jobs now use SocialCrabs's centralized notification system
 
 ### Documentation
 - **`examples/CRONJOB_TEMPLATE.md`**: Complete reference for all cron job patterns
@@ -265,7 +265,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release of ClawSocial
+- Initial release of SocialCrabs
 - **Instagram Support** ✅ Tested
   - Headless login with credentials
   - Like posts

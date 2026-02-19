@@ -29,7 +29,7 @@ const SELECTORS = {
   unlikeButton: 'button[aria-pressed="true"][aria-label*="React"]',
   commentButton: 'button[aria-label*="Comment"]',
   commentInput: 'div.ql-editor[data-placeholder*="Add a comment"], div[contenteditable="true"]',
-  commentSubmit: 'button.comments-comment-box__submit-button',
+  commentSubmit: 'button.comments-comment-box__submit-button, button[data-control-name="comment_submit"], form.comments-comment-box button[type="submit"], button.artdeco-button--primary:near(div.ql-editor)',
   
   // Profile actions (case-insensitive matching)
   connectButton: 'button[aria-label*="connect"], button[aria-label*="Connect"], button:has-text("Connect"):not([aria-label*="Invite"])',
@@ -379,19 +379,34 @@ export class LinkedInHandler extends BasePlatformHandler {
       await page.keyboard.type(sanitizedText, { delay: 50 });
       await this.pause();
 
-      // Submit comment
-      if (await this.elementExists(SELECTORS.commentSubmit)) {
+      // Submit comment — MUST find and click submit button
+      const submitFound = await this.elementExists(SELECTORS.commentSubmit);
+      if (!submitFound) {
+        // Try pressing Ctrl+Enter as fallback
+        log.warn('Comment submit button not found, trying Ctrl+Enter fallback');
+        await page.keyboard.press('Control+Enter');
+        await this.pause();
+      } else {
         await this.clickHuman(SELECTORS.commentSubmit);
       }
 
+      // Verify comment was actually posted by checking for our text on the page
       await this.delay();
+      const pageContent = await page.content();
+      const commentLanded = pageContent.includes(sanitizedText.substring(0, 30));
+      
+      if (!commentLanded) {
+        log.error('Comment text not found on page after submit — comment likely did NOT post');
+        return this.createErrorResult('comment', payload.url, 'Comment submit failed — text not found on page after submit', startTime, status);
+      }
+
       await this.recordAction('comment');
       
-      log.info('Successfully commented on LinkedIn post');
+      log.info('Successfully commented on LinkedIn post (verified on page)');
       return this.createResult('comment', payload.url, startTime, status, {
         postUrl: payload.url,
         commentText: sanitizedText,
-        actions: ['💬 Commented'],
+        actions: ['💬 Commented (verified)'],
       });
     } catch (error) {
       log.error('Error commenting on LinkedIn post', { error: String(error) });
@@ -933,10 +948,10 @@ export class LinkedInHandler extends BasePlatformHandler {
       await this.navigate(searchUrl);
       await this.think();
 
-      // Scroll to load more content
-      for (let i = 0; i < 10; i++) {
+      // Scroll to load more content (25 scrolls to get ~10-15 posts per query)
+      for (let i = 0; i < 25; i++) {
         await page.evaluate('window.scrollBy(0, 1000)');
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(1200 + Math.floor(Math.random() * 800));
       }
 
       // Get HTML

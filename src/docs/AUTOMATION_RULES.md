@@ -301,7 +301,7 @@ clawsocial cron add \
   --at "2026-02-04T16:51:00Z" \
   --session isolated \
   --wake now \
-  --model anthropic/claude-sonnet-4-20250514 \
+  --model anthropic/claude-sonnet-4-5 \
   --message "LinkedIn Connect task..."
 ```
 

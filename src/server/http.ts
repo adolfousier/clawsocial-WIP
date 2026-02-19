@@ -1,10 +1,10 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { log } from '../utils/logger.js';
-import type { ClawSocial } from '../index.js';
+import type { SocialCrabs } from '../index.js';
 import type { Platform } from '../types/index.js';
 
-export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
+export function createHttpServer(socialCrabs: SocialCrabs, apiKey?: string) {
   const app = express();
 
   // Middleware
@@ -46,7 +46,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
 
   app.get('/api/status', async (_req: Request, res: Response) => {
     try {
-      const status = await clawSocial.getStatus();
+      const status = await socialCrabs.getStatus();
       res.json(status);
     } catch (error) {
       log.error('Error getting status', { error: String(error) });
@@ -61,7 +61,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
   app.get('/api/session/:platform', async (req: Request, res: Response) => {
     try {
       const platform = req.params.platform as Platform;
-      const isLoggedIn = await clawSocial.isLoggedIn(platform);
+      const isLoggedIn = await socialCrabs.isLoggedIn(platform);
       res.json({ platform, loggedIn: isLoggedIn });
     } catch (error) {
       log.error('Error checking session', { error: String(error) });
@@ -73,7 +73,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
     try {
       const platform = req.params.platform as Platform;
       log.info(`Login request for ${platform}`);
-      const success = await clawSocial.login(platform);
+      const success = await socialCrabs.login(platform);
       res.json({ platform, success });
     } catch (error) {
       log.error('Error logging in', { error: String(error) });
@@ -84,7 +84,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
   app.post('/api/session/logout/:platform', async (req: Request, res: Response) => {
     try {
       const platform = req.params.platform as Platform;
-      await clawSocial.logout(platform);
+      await socialCrabs.logout(platform);
       res.json({ platform, success: true });
     } catch (error) {
       log.error('Error logging out', { error: String(error) });
@@ -103,7 +103,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'URL required' });
         return;
       }
-      const result = await clawSocial.instagram.like({ url });
+      const result = await socialCrabs.instagram.like({ url });
       res.json(result);
     } catch (error) {
       log.error('Error liking Instagram post', { error: String(error) });
@@ -118,7 +118,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'URL and text required' });
         return;
       }
-      const result = await clawSocial.instagram.comment({ url, text });
+      const result = await socialCrabs.instagram.comment({ url, text });
       res.json(result);
     } catch (error) {
       log.error('Error commenting on Instagram post', { error: String(error) });
@@ -133,7 +133,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'Username required' });
         return;
       }
-      const result = await clawSocial.instagram.follow({ username });
+      const result = await socialCrabs.instagram.follow({ username });
       res.json(result);
     } catch (error) {
       log.error('Error following Instagram user', { error: String(error) });
@@ -148,7 +148,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'Username required' });
         return;
       }
-      const result = await clawSocial.instagram.unfollow({ username });
+      const result = await socialCrabs.instagram.unfollow({ username });
       res.json(result);
     } catch (error) {
       log.error('Error unfollowing Instagram user', { error: String(error) });
@@ -163,7 +163,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'Username and message required' });
         return;
       }
-      const result = await clawSocial.instagram.dm({ username, message });
+      const result = await socialCrabs.instagram.dm({ username, message });
       res.json(result);
     } catch (error) {
       log.error('Error sending Instagram DM', { error: String(error) });
@@ -174,7 +174,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
   app.get('/api/instagram/profile/:username', async (req: Request, res: Response) => {
     try {
       const username = req.params.username as string;
-      const profile = await clawSocial.instagram.getProfile(username);
+      const profile = await socialCrabs.instagram.getProfile(username);
       res.json(profile);
     } catch (error) {
       log.error('Error getting Instagram profile', { error: String(error) });
@@ -193,7 +193,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'URL required' });
         return;
       }
-      const result = await clawSocial.twitter.like({ url });
+      const result = await socialCrabs.twitter.like({ url });
       res.json(result);
     } catch (error) {
       log.error('Error liking tweet', { error: String(error) });
@@ -208,7 +208,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'Text required' });
         return;
       }
-      const result = await clawSocial.twitter.post({ text });
+      const result = await socialCrabs.twitter.post({ text });
       res.json(result);
     } catch (error) {
       log.error('Error posting tweet', { error: String(error) });
@@ -223,7 +223,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'URL and text required' });
         return;
       }
-      const result = await clawSocial.twitter.comment({ url, text });
+      const result = await socialCrabs.twitter.comment({ url, text });
       res.json(result);
     } catch (error) {
       log.error('Error replying to tweet', { error: String(error) });
@@ -238,7 +238,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'URL required' });
         return;
       }
-      const result = await clawSocial.twitter.retweet(url);
+      const result = await socialCrabs.twitter.retweet(url);
       res.json(result);
     } catch (error) {
       log.error('Error retweeting', { error: String(error) });
@@ -253,7 +253,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'Username required' });
         return;
       }
-      const result = await clawSocial.twitter.follow({ username });
+      const result = await socialCrabs.twitter.follow({ username });
       res.json(result);
     } catch (error) {
       log.error('Error following Twitter user', { error: String(error) });
@@ -268,7 +268,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'Username and message required' });
         return;
       }
-      const result = await clawSocial.twitter.dm({ username, message });
+      const result = await socialCrabs.twitter.dm({ username, message });
       res.json(result);
     } catch (error) {
       log.error('Error sending Twitter DM', { error: String(error) });
@@ -279,7 +279,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
   app.get('/api/twitter/profile/:username', async (req: Request, res: Response) => {
     try {
       const username = req.params.username as string;
-      const profile = await clawSocial.twitter.getProfile(username);
+      const profile = await socialCrabs.twitter.getProfile(username);
       res.json(profile);
     } catch (error) {
       log.error('Error getting Twitter profile', { error: String(error) });
@@ -298,7 +298,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'URL required' });
         return;
       }
-      const result = await clawSocial.linkedin.like({ url });
+      const result = await socialCrabs.linkedin.like({ url });
       res.json(result);
     } catch (error) {
       log.error('Error liking LinkedIn post', { error: String(error) });
@@ -313,7 +313,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'URL and text required' });
         return;
       }
-      const result = await clawSocial.linkedin.comment({ url, text });
+      const result = await socialCrabs.linkedin.comment({ url, text });
       res.json(result);
     } catch (error) {
       log.error('Error commenting on LinkedIn post', { error: String(error) });
@@ -328,7 +328,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'Profile URL required' });
         return;
       }
-      const result = await clawSocial.linkedin.connect({ profileUrl, note });
+      const result = await socialCrabs.linkedin.connect({ profileUrl, note });
       res.json(result);
     } catch (error) {
       log.error('Error sending LinkedIn connection', { error: String(error) });
@@ -343,7 +343,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
         res.status(400).json({ error: 'Username and message required' });
         return;
       }
-      const result = await clawSocial.linkedin.dm({ username, message });
+      const result = await socialCrabs.linkedin.dm({ username, message });
       res.json(result);
     } catch (error) {
       log.error('Error sending LinkedIn message', { error: String(error) });
@@ -354,7 +354,7 @@ export function createHttpServer(clawSocial: ClawSocial, apiKey?: string) {
   app.get('/api/linkedin/profile/:username', async (req: Request, res: Response) => {
     try {
       const username = req.params.username as string;
-      const profile = await clawSocial.linkedin.getProfile(username);
+      const profile = await socialCrabs.linkedin.getProfile(username);
       res.json(profile);
     } catch (error) {
       log.error('Error getting LinkedIn profile', { error: String(error) });

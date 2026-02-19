@@ -4,7 +4,7 @@
 ![Playwright](https://img.shields.io/badge/Playwright-1.58+-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
 
 
-# 🦀 ClawSocial
+# 🦀 SocialCrabs
 
 **Web-based social media automation tool with human-like behavior simulation built with Playwright**
 
@@ -94,7 +94,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        ClawSocial                           │
+│                        SocialCrabs                           │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐                     │
@@ -138,7 +138,7 @@
 
 ### Human Simulation
 
-ClawSocial automatically simulates human behavior for every action:
+SocialCrabs automatically simulates human behavior for every action:
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
@@ -241,8 +241,8 @@ See `src/examples/CRONJOB_TEMPLATE.md` for full workflow.
 
 ```bash
 # Clone the repository
-git clone https://github.com/adolfousier/clawsocial.git
-cd clawsocial
+git clone https://github.com/adolfousier/socialcrabs.git
+cd socialcrabs
 
 # Install dependencies
 npm install
@@ -276,7 +276,7 @@ npm start
 
 ### 🤖 AI Agent Instructions
 
-> **For AI agents (OpenClaw, Claude, etc.)** — Here's how to use ClawSocial:
+> **For AI agents (OpenClaw, Claude, etc.)** — Here's how to use SocialCrabs:
 
 > ⚠️ **Always use `node dist/cli.js`** instead of `npm run cli --`. Build first with `npm run build`. The tsx runtime adds overhead and causes browser launch hangs under load.
 
@@ -325,7 +325,7 @@ node dist/cli.js x search "query" --json          # JSON output for automation
 
 #### 🔄 Autonomous Engagement
 
-ClawSocial supports **fully autonomous engagement** when paired with an AI agent scheduler (e.g., OpenClaw cron):
+SocialCrabs supports **fully autonomous engagement** when paired with an AI agent scheduler (e.g., OpenClaw cron):
 
 - **Auto-replenish**: When content pool runs dry, jobs automatically scrape fresh content
 - **Session monitoring**: Cron checks session health every 6h, triggers re-auth if expired
@@ -365,23 +365,23 @@ TWITTER_PASSWORD="your_password"
 
 #### Multi-Action Sequences
 
-When performing multiple actions on the same profile (e.g., DM then comment), ClawSocial automatically applies a 2-3 minute cooldown between actions.
+When performing multiple actions on the same profile (e.g., DM then comment), SocialCrabs automatically applies a 2-3 minute cooldown between actions.
 
 ### Docker
 
 ```bash
 # Build image
-docker build -t clawsocial .
+docker build -t socialcrabs .
 
 # Run container
 docker run -d \
-  --name clawsocial \
+  --name socialcrabs \
   -p 3847:3847 \
   -p 3848:3848 \
   -v $(pwd)/sessions:/app/sessions \
   -v $(pwd)/browser-data:/app/browser-data \
   --env-file .env \
-  clawsocial
+  socialcrabs
 ```
 
 ---
@@ -488,9 +488,9 @@ curl http://localhost:3847/api/status \
 ### Programmatic Usage
 
 ```typescript
-import { ClawSocial } from 'clawsocial';
+import { SocialCrabs } from 'socialcrabs';
 
-const claw = new ClawSocial({
+const claw = new SocialCrabs({
   headless: true,
   sessionDir: './sessions',
 });
@@ -633,7 +633,7 @@ Increase by 25% each week until reaching production limits at week 5.
 
 ### Notifications
 
-ClawSocial can send notifications via Telegram, Discord, or custom webhooks when actions complete or fail.
+SocialCrabs can send notifications via Telegram, Discord, or custom webhooks when actions complete or fail.
 
 #### Notification Environment Variables
 
@@ -646,12 +646,12 @@ ClawSocial can send notifications via Telegram, Discord, or custom webhooks when
 | `NOTIFY_WEBHOOK_URL` | - | Custom webhook URL |
 | `NOTIFY_WEBHOOK_METHOD` | POST | Webhook HTTP method |
 | `NOTIFY_WEBHOOK_HEADERS` | - | JSON headers for webhook |
-| `NOTIFY_BRAND_FOOTER` | *ClawSocial Automation* | Footer text for notifications |
+| `NOTIFY_BRAND_FOOTER` | *SocialCrabs Automation* | Footer text for notifications |
 | `NOTIFY_ON_COMPLETE` | true | Notify on action success |
 | `NOTIFY_ON_ERROR` | true | Notify on action failure |
 | `NOTIFY_ON_LOGIN` | false | Notify on login events |
 | `NOTIFY_ON_RATELIMIT` | true | Notify on rate limit exceeded |
-| `CLAWSOCIAL_SILENT` | - | Set to `1` to suppress auto-notifications (for combined reports) |
+| `SOCIALCRABS_SILENT` | - | Set to `1` to suppress auto-notifications (for combined reports) |
 
 #### Example .env for Telegram Notifications
 
@@ -659,7 +659,7 @@ ClawSocial can send notifications via Telegram, Discord, or custom webhooks when
 NOTIFY_ENABLED=true
 NOTIFY_TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
 NOTIFY_TELEGRAM_CHAT_ID=7711740248
-NOTIFY_BRAND_FOOTER="*ClawSocial LinkedIn Automation*"
+NOTIFY_BRAND_FOOTER="*SocialCrabs LinkedIn Automation*"
 ```
 
 ---
@@ -702,6 +702,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ by [Adolfo Usier](https://github.com/adolfousier)**
 
-[⬆ Back to Top](#-clawsocial)
+[⬆ Back to Top](#-socialcrabs)
 
 </div>

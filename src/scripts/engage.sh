@@ -1,6 +1,6 @@
 #!/bin/bash
 # LinkedIn Engagement Runner
-# Uses ClawSocial CLI with human-like delays
+# Uses SocialCrabs CLI with human-like delays
 
 set -e
 cd "$(dirname "$0")/.."

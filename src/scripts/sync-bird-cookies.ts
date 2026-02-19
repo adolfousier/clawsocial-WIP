@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Sync bird CLI cookies to ClawSocial Twitter session
+ * Sync bird CLI cookies to SocialCrabs Twitter session
  * 
  * Usage:
  *   npx tsx scripts/sync-bird-cookies.ts

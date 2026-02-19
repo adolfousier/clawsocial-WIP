@@ -9,7 +9,7 @@ import { initLogger, log } from './utils/logger.js';
 import { configureDelays } from './utils/delays.js';
 import { loadConfig } from './utils/config.js';
 import { Notifier, initNotifier } from './services/notifier.js';
-import type { ClawSocialConfig, Platform, RateLimitStatus, ServerConfig, BrowserConfig, RateLimitConfig, DelayConfig, SessionConfig, LoggingConfig, NotificationConfig } from './types/index.js';
+import type { SocialCrabsConfig, Platform, RateLimitStatus, ServerConfig, BrowserConfig, RateLimitConfig, DelayConfig, SessionConfig, LoggingConfig, NotificationConfig } from './types/index.js';
 
 interface ResolvedConfig {
   server: ServerConfig;
@@ -22,7 +22,7 @@ interface ResolvedConfig {
 }
 import type { Server } from 'http';
 
-export class ClawSocial {
+export class SocialCrabs {
   private config: ResolvedConfig;
   private browserManager: BrowserManager;
   private rateLimiter: RateLimiter;
@@ -34,7 +34,7 @@ export class ClawSocial {
   public twitter: TwitterHandler;
   public linkedin: LinkedInHandler;
 
-  constructor(config?: ClawSocialConfig) {
+  constructor(config?: SocialCrabsConfig) {
     // Load and merge config
     const defaultConfig = loadConfig();
     this.config = {
@@ -89,7 +89,7 @@ export class ClawSocial {
     this.twitter = new TwitterHandler(this.browserManager, this.rateLimiter);
     this.linkedin = new LinkedInHandler(this.browserManager, this.rateLimiter);
 
-    log.info('ClawSocial initialized', {
+    log.info('SocialCrabs initialized', {
       headless: this.config.browser.headless,
       sessionDir: this.config.session.dir,
       notificationsEnabled: this.config.notifications.enabled,
@@ -107,9 +107,9 @@ export class ClawSocial {
    * Initialize the browser
    */
   async initialize(): Promise<void> {
-    log.info('Initializing ClawSocial...');
+    log.info('Initializing SocialCrabs...');
     await this.browserManager.initialize();
-    log.info('ClawSocial ready');
+    log.info('SocialCrabs ready');
   }
 
   /**
@@ -251,7 +251,7 @@ export class ClawSocial {
    * Shutdown everything
    */
   async shutdown(): Promise<void> {
-    log.info('Shutting down ClawSocial...');
+    log.info('Shutting down SocialCrabs...');
 
     // Stop WebSocket server
     if (this.wsManager) {
@@ -270,7 +270,7 @@ export class ClawSocial {
     // Shutdown browser
     await this.browserManager.shutdown();
 
-    log.info('ClawSocial shutdown complete');
+    log.info('SocialCrabs shutdown complete');
   }
 }
 
@@ -291,4 +291,4 @@ export { TwitterHandler } from './platforms/twitter.js';
 export { LinkedInHandler } from './platforms/linkedin.js';
 
 // Default export
-export default ClawSocial;
+export default SocialCrabs;

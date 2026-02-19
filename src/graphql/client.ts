@@ -298,8 +298,8 @@ export class XGraphQLClient {
  * Create an XGraphQLClient from environment variables
  */
 export function createClientFromEnv(): XGraphQLClient {
-  const authToken = process.env.AUTH_TOKEN || process.env.CLAWSOCIAL_AUTH_TOKEN || '';
-  const ct0 = process.env.CT0 || process.env.CLAWSOCIAL_CT0 || '';
+  const authToken = process.env.AUTH_TOKEN || process.env.SOCIALCRABS_AUTH_TOKEN || '';
+  const ct0 = process.env.CT0 || process.env.SOCIALCRABS_CT0 || '';
   if (!authToken || !ct0) {
     throw new Error('AUTH_TOKEN and CT0 environment variables are required. Set them in .env or pass --auth-token and --ct0.');
   }

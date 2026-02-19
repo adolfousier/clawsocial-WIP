@@ -129,7 +129,7 @@ export abstract class BasePlatformHandler {
 
   /**
    * Send notification for action result
-   * Set CLAWSOCIAL_SILENT=1 to suppress auto-notifications (for CLI --context mode)
+   * Set SOCIALCRABS_SILENT=1 to suppress auto-notifications (for CLI --context mode)
    */
   protected async sendNotification(
     event: 'action:complete' | 'action:error',
@@ -137,8 +137,8 @@ export abstract class BasePlatformHandler {
     details?: Record<string, unknown>
   ): Promise<void> {
     // Skip if silent mode (CLI will send notification with context)
-    if (process.env.CLAWSOCIAL_SILENT === '1') {
-      log.debug('Notification skipped - CLAWSOCIAL_SILENT=1');
+    if (process.env.SOCIALCRABS_SILENT === '1') {
+      log.debug('Notification skipped - SOCIALCRABS_SILENT=1');
       return;
     }
     

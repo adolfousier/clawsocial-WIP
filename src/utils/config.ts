@@ -121,7 +121,7 @@ export function loadConfig(): ResolvedConfig {
         'session:login': getEnvBoolean('NOTIFY_ON_LOGIN', false),
         'ratelimit:exceeded': getEnvBoolean('NOTIFY_ON_RATELIMIT', true),
       },
-      brandFooter: getEnvString('NOTIFY_BRAND_FOOTER', '*ClawSocial Automation*'),
+      brandFooter: getEnvString('NOTIFY_BRAND_FOOTER', '*SocialCrabs Automation*'),
     },
   };
 }

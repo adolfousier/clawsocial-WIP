@@ -23,7 +23,7 @@ export type ActionType =
 // Configuration Types
 // ============================================================================
 
-export interface ClawSocialConfig {
+export interface SocialCrabsConfig {
   server?: Partial<ServerConfig>;
   browser?: Partial<BrowserConfig>;
   rateLimits?: Partial<RateLimitConfig>;
@@ -341,7 +341,7 @@ export interface LinkedInProfile {
 // Event Types
 // ============================================================================
 
-export type ClawSocialEvent =
+export type SocialCrabsEvent =
   | 'action:start'
   | 'action:complete'
   | 'action:error'
@@ -353,7 +353,7 @@ export type ClawSocialEvent =
   | 'browser:closed';
 
 export interface EventPayload {
-  event: ClawSocialEvent;
+  event: SocialCrabsEvent;
   data: Record<string, unknown>;
   timestamp: number;
 }

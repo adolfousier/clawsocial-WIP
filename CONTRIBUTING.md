@@ -1,6 +1,6 @@
-# Contributing to ClawSocial
+# Contributing to SocialCrabs
 
-Thank you for your interest in contributing to ClawSocial! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to SocialCrabs! This document provides guidelines and information for contributors.
 
 ## Code of Conduct
 
@@ -41,8 +41,8 @@ By participating in this project, you agree to abide by our Code of Conduct: be 
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/clawsocial.git
-cd clawsocial
+git clone https://github.com/YOUR_USERNAME/socialcrabs.git
+cd socialcrabs
 
 # Install dependencies
 npm install

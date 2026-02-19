@@ -2,7 +2,7 @@
 
 import 'dotenv/config';
 import { Command } from 'commander';
-import { ClawSocial } from './index.js';
+import { SocialCrabs } from './index.js';
 import type { Platform, ActionType, NotificationPayload } from './types/index.js';
 
 // Default retry configuration
@@ -66,7 +66,7 @@ function parseRetries(retriesStr?: string): number {
  * Send notification with merged context (used when --context is provided)
  */
 async function sendNotificationWithContext(
-  claw: ClawSocial,
+  claw: SocialCrabs,
   platform: Platform,
   action: ActionType,
   success: boolean,
@@ -94,7 +94,7 @@ async function sendNotificationWithContext(
 const program = new Command();
 
 program
-  .name('clawsocial')
+  .name('socialcrabs')
   .description('Production-ready social media automation with human-like behavior')
   .version('1.0.0');
 
@@ -104,7 +104,7 @@ program
 
 program
   .command('serve')
-  .description('Start the ClawSocial server')
+  .description('Start the SocialCrabs server')
   .option('-p, --port <port>', 'HTTP port', '3847')
   .option('-w, --ws-port <port>', 'WebSocket port', '3848')
   .option('-h, --host <host>', 'Host to bind to', '127.0.0.1')
@@ -112,7 +112,7 @@ program
   .option('--no-headless', 'Run browser with visible window')
   .action(async (options) => {
     try {
-      const claw = new ClawSocial({
+      const claw = new SocialCrabs({
         server: {
           port: parseInt(options.port, 10),
           wsPort: parseInt(options.wsPort, 10),
@@ -126,7 +126,7 @@ program
       await claw.initialize();
       await claw.startServer();
 
-      console.log(`\n🦞 ClawSocial server running`);
+      console.log(`\n🦞 SocialCrabs server running`);
       console.log(`   HTTP: http://${options.host}:${options.port}`);
       console.log(`   WS:   ws://${options.host}:${options.wsPort}`);
       console.log(`\nPress Ctrl+C to stop\n`);
@@ -157,7 +157,7 @@ session
       
       const headless = options.headless === true || !!(username && password);
       
-      const claw = new ClawSocial({
+      const claw = new SocialCrabs({
         browser: { headless },
       });
 
@@ -201,7 +201,7 @@ session
   .description('Check login status for all platforms')
   .action(async () => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const status = await claw.getStatus();
@@ -232,7 +232,7 @@ session
   .description('Logout from a platform')
   .action(async (platform: Platform) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
       await claw.logout(platform);
       console.log(`✅ Logged out of ${platform}`);
@@ -256,9 +256,9 @@ ig.command('like <url>')
   .action(async (url: string, options: { context?: string; retries?: string }) => {
     const retries = parseRetries(options.retries);
     const context = parseContext(options.context);
-    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    if (context) process.env.SOCIALCRABS_SILENT = '1';
     
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     
     try {
       await claw.initialize();
@@ -304,9 +304,9 @@ ig.command('follow <username>')
   .action(async (username: string, options: { context?: string; retries?: string }) => {
     const retries = parseRetries(options.retries);
     const context = parseContext(options.context);
-    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    if (context) process.env.SOCIALCRABS_SILENT = '1';
     
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     
     try {
       await claw.initialize();
@@ -352,9 +352,9 @@ ig.command('comment <url> <text>')
   .action(async (url: string, text: string, options: { context?: string; retries?: string }) => {
     const retries = parseRetries(options.retries);
     const context = parseContext(options.context);
-    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    if (context) process.env.SOCIALCRABS_SILENT = '1';
     
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     
     try {
       await claw.initialize();
@@ -397,7 +397,7 @@ ig.command('dm <username> <message>')
   .description('Send a DM to an Instagram user')
   .action(async (username: string, message: string) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const result = await claw.instagram.dm({ username, message });
@@ -419,7 +419,7 @@ ig.command('profile <username>')
   .description('Get Instagram profile data')
   .action(async (username: string) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const profile = await claw.instagram.getProfile(username);
@@ -437,7 +437,7 @@ ig.command('followers <username>')
   .option('-n, --limit <number>', 'Max followers to scrape', '10')
   .action(async (username: string, options: { limit: string }) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const limit = parseInt(options.limit, 10);
@@ -459,7 +459,7 @@ ig.command('posts <username>')
   .option('-n, --limit <number>', 'Max posts to get', '3')
   .action(async (username: string, options: { limit: string }) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const limit = parseInt(options.limit, 10);
@@ -490,9 +490,9 @@ twitter
   .action(async (url: string, options: { context?: string; retries?: string }) => {
     const retries = parseRetries(options.retries);
     const context = parseContext(options.context);
-    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    if (context) process.env.SOCIALCRABS_SILENT = '1';
     
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     
     try {
       await claw.initialize();
@@ -536,7 +536,7 @@ twitter
   .description('Post a tweet')
   .action(async (text: string) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const result = await claw.twitter.post({ text });
@@ -562,7 +562,7 @@ twitter
   .action(async (usernameOrUrl: string, options: { context?: string; retries?: string }) => {
     const retries = parseRetries(options.retries);
     const context = parseContext(options.context);
-    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    if (context) process.env.SOCIALCRABS_SILENT = '1';
     
     // Extract username from URL if needed
     let username = usernameOrUrl;
@@ -574,7 +574,7 @@ twitter
     }
     username = username.replace(/^@/, '');
     
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     
     try {
       await claw.initialize();
@@ -620,9 +620,9 @@ twitter
   .action(async (url: string, text: string, options: { context?: string }) => {
     try {
       const context = parseContext(options.context);
-      if (context) process.env.CLAWSOCIAL_SILENT = '1';
+      if (context) process.env.SOCIALCRABS_SILENT = '1';
       
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const result = await claw.twitter.comment({ url, text });
@@ -771,9 +771,9 @@ linkedin
   .action(async (url: string, options: { note?: string; context?: string; retries?: string }) => {
     const retries = parseRetries(options.retries);
     const context = parseContext(options.context);
-    if (context) process.env.CLAWSOCIAL_SILENT = '1';
+    if (context) process.env.SOCIALCRABS_SILENT = '1';
     
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     
     try {
       await claw.initialize();
@@ -820,7 +820,7 @@ linkedin
   .description('Send a LinkedIn message')
   .action(async (url: string, text: string) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const result = await claw.linkedin.dm({ username: url, message: text });
@@ -843,7 +843,7 @@ linkedin
   .description('Like a LinkedIn post')
   .action(async (url: string) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const result = await claw.linkedin.like({ url });
@@ -866,7 +866,7 @@ linkedin
   .description('Get LinkedIn profile data')
   .action(async (username: string) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const profile = await claw.linkedin.getProfile(username);
@@ -884,7 +884,7 @@ linkedin
   .description('Comment on a LinkedIn post')
   .action(async (url: string, text: string) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const result = await claw.linkedin.comment({ url, text });
@@ -908,7 +908,7 @@ linkedin
   .option('-o, --output <file>', 'Save HTML to file')
   .action(async (query: string, options: { output?: string }) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       await claw.initialize();
 
       const result = await claw.linkedin.search(query);
@@ -968,7 +968,7 @@ notify
   .description('Show notification configuration status')
   .action(async () => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       const notifier = claw.notifier;
       
       console.log('\n📬 Notification Status\n');
@@ -1006,7 +1006,7 @@ notify
   .description('Send a test notification (telegram, discord, webhook, or all)')
   .action(async (channel?: string) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       const notifier = claw.notifier;
       
       if (!notifier.isEnabled()) {
@@ -1036,7 +1036,7 @@ notify
   .option('-c, --channel <channel>', 'Send to specific channel (telegram, discord, webhook)')
   .action(async (message: string, options: { channel?: string }) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       const notifier = claw.notifier;
       
       if (!notifier.isEnabled()) {
@@ -1075,7 +1075,7 @@ notify
   .option('--error <message>', 'Mark as error with message')
   .action(async (platform: string, action: string, target: string, options: { context?: string; success?: boolean; error?: string }) => {
     try {
-      const claw = new ClawSocial({ browser: { headless: true } });
+      const claw = new SocialCrabs({ browser: { headless: true } });
       const notifier = claw.notifier;
       
       if (!notifier.isEnabled()) {
@@ -1121,7 +1121,7 @@ notify
   .command('test-x-like')
   .description('Send a test X LIKE notification')
   .action(async () => {
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     const notifier = claw.notifier;
     
     if (!notifier.isEnabled()) {
@@ -1152,7 +1152,7 @@ notify
   .command('test-x-follow')
   .description('Send a test X FOLLOW notification')
   .action(async () => {
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     const notifier = claw.notifier;
     
     if (!notifier.isEnabled()) {
@@ -1182,7 +1182,7 @@ notify
   .command('test-x-reply')
   .description('Send a test X ENGAGEMENT (Like + Reply) notification')
   .action(async () => {
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     const notifier = claw.notifier;
     
     if (!notifier.isEnabled()) {
@@ -1214,7 +1214,7 @@ notify
   .command('test-linkedin-connect')
   .description('Send a test LINKEDIN CONNECTION notification')
   .action(async () => {
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     const notifier = claw.notifier;
     
     if (!notifier.isEnabled()) {
@@ -1244,7 +1244,7 @@ notify
   .command('test-linkedin-comment')
   .description('Send a test LINKEDIN ENGAGEMENT notification')
   .action(async () => {
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     const notifier = claw.notifier;
     
     if (!notifier.isEnabled()) {
@@ -1276,7 +1276,7 @@ notify
   .command('test-ig-follow')
   .description('Send a test INSTAGRAM FOLLOW notification')
   .action(async () => {
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     const notifier = claw.notifier;
     
     if (!notifier.isEnabled()) {
@@ -1305,7 +1305,7 @@ notify
   .command('test-ig-comment')
   .description('Send a test INSTAGRAM COMMENT notification')
   .action(async () => {
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     const notifier = claw.notifier;
     
     if (!notifier.isEnabled()) {
@@ -1334,7 +1334,7 @@ notify
   .command('test-error')
   .description('Send a test ERROR notification')
   .action(async () => {
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     const notifier = claw.notifier;
     
     if (!notifier.isEnabled()) {
@@ -1362,7 +1362,7 @@ notify
   .command('test-all')
   .description('Send all test notifications')
   .action(async () => {
-    const claw = new ClawSocial({ browser: { headless: true } });
+    const claw = new SocialCrabs({ browser: { headless: true } });
     const notifier = claw.notifier;
     
     if (!notifier.isEnabled()) {
